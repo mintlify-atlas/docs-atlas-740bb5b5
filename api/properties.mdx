@@ -1,0 +1,249 @@
+---
+title: Properties API
+description: Manage real estate properties in your Relio workspace
+---
+
+## properties.list()
+
+List properties with advanced filtering.
+
+<ParamField path="limit" type="number" default="50">
+  Maximum results
+</ParamField>
+
+<ParamField path="cursor" type="string">
+  Pagination cursor
+</ParamField>
+
+<ParamField path="offset" type="number">
+  Offset pagination
+</ParamField>
+
+<ParamField path="search" type="string">
+  Search by address or MLS ID
+</ParamField>
+
+<ParamField path="propertyType" type="string">
+  Filter by property type
+</ParamField>
+
+<ParamField path="status" type="string">
+  Filter by status
+</ParamField>
+
+<ParamField path="city" type="string">
+  Filter by city
+</ParamField>
+
+<ParamField path="state" type="string">
+  Filter by state
+</ParamField>
+
+<ParamField path="minPrice" type="number">
+  Minimum list price
+</ParamField>
+
+<ParamField path="maxPrice" type="number">
+  Maximum list price
+</ParamField>
+
+<ParamField path="minUnits" type="number">
+  Minimum units
+</ParamField>
+
+<ParamField path="maxUnits" type="number">
+  Maximum units
+</ParamField>
+
+<ParamField path="minYearBuilt" type="number">
+  Minimum year built
+</ParamField>
+
+<ParamField path="maxYearBuilt" type="number">
+  Maximum year built
+</ParamField>
+
+<ParamField path="swLat" type="number">
+  Southwest latitude for map bounds
+</ParamField>
+
+<ParamField path="swLng" type="number">
+  Southwest longitude
+</ParamField>
+
+<ParamField path="neLat" type="number">
+  Northeast latitude
+</ParamField>
+
+<ParamField path="neLng" type="number">
+  Northeast longitude
+</ParamField>
+
+<ResponseField name="items" type="Property[]">
+  Array of properties
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string | null">
+  Next page cursor
+</ResponseField>
+
+<ResponseField name="total" type="number">
+  Total count
+</ResponseField>
+
+```typescript
+const properties = await trpc.properties.list.query({
+  city: "San Francisco",
+  minPrice: 1000000,
+  maxPrice: 5000000,
+  propertyType: "multifamily"
+});
+```
+
+## properties.create()
+
+Create a new property.
+
+<ParamField path="address" type="string" required>
+  Street address
+</ParamField>
+
+<ParamField path="city" type="string">
+  City
+</ParamField>
+
+<ParamField path="state" type="string">
+  State
+</ParamField>
+
+<ParamField path="zip" type="string">
+  ZIP code
+</ParamField>
+
+<ParamField path="propertyType" type="string">
+  Property type (multifamily, single_family, commercial, etc.)
+</ParamField>
+
+<ParamField path="status" type="string">
+  Status (active, pending, sold, etc.)
+</ParamField>
+
+<ParamField path="listPrice" type="number">
+  List price
+</ParamField>
+
+<ParamField path="bedrooms" type="number">
+  Number of bedrooms
+</ParamField>
+
+<ParamField path="bathrooms" type="number">
+  Number of bathrooms
+</ParamField>
+
+<ParamField path="sqft" type="number">
+  Square footage
+</ParamField>
+
+<ParamField path="units" type="number">
+  Number of units (for multifamily)
+</ParamField>
+
+<ParamField path="yearBuilt" type="number">
+  Year built
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Property ID
+</ResponseField>
+
+<ResponseField name="address" type="string">
+  Address
+</ResponseField>
+
+<ResponseField name="latitude" type="number | null">
+  Geocoded latitude
+</ResponseField>
+
+<ResponseField name="longitude" type="number | null">
+  Geocoded longitude
+</ResponseField>
+
+```typescript
+const property = await trpc.properties.create.mutate({
+  address: "123 Main St",
+  city: "San Francisco",
+  state: "CA",
+  propertyType: "multifamily",
+  units: 12,
+  listPrice: 2500000
+});
+```
+
+## properties.update()
+
+Update an existing property.
+
+<ParamField path="id" type="string" required>
+  Property ID
+</ParamField>
+
+<ParamField path="address" type="string">
+  Address
+</ParamField>
+
+<ParamField path="listPrice" type="number">
+  List price
+</ParamField>
+
+<ParamField path="status" type="string">
+  Status
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Property ID
+</ResponseField>
+
+```typescript
+const updated = await trpc.properties.update.mutate({
+  id: "clx123...",
+  status: "pending",
+  listPrice: 2450000
+});
+```
+
+## properties.delete()
+
+Delete a property. Requires admin role.
+
+<ParamField path="id" type="string" required>
+  Property ID
+</ParamField>
+
+```typescript
+const deleted = await trpc.properties.delete.mutate("clx123...");
+```
+
+## properties.enrich()
+
+Enrich a property with geocoding, Walk Score, and county data.
+
+<ParamField path="id" type="string" required>
+  Property ID
+</ParamField>
+
+<ResponseField name="property" type="Property">
+  Enriched property
+</ResponseField>
+
+<ResponseField name="enriched" type="object">
+  Enrichment details
+  - `geocoded`: Whether geocoding was performed
+  - `walkScore`: Walk score (0-100)
+  - `transitScore`: Transit score
+  - `bikeScore`: Bike score
+</ResponseField>
+
+```typescript
+const enriched = await trpc.properties.enrich.mutate({ id: "clx123..." });
+console.log(enriched.enriched.walkScore); // 92
+```

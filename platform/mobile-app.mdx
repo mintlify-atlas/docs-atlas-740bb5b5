@@ -1,0 +1,251 @@
+---
+title: Mobile Application
+description: Stay productive on the go with Relio's native mobile app for iOS and Android
+icon: mobile
+---
+
+The Relio mobile app brings your CRM to your pocket, allowing you to manage contacts, properties, and deals from anywhere. Built with React Native and Expo, it provides a native mobile experience optimized for touch interfaces.
+
+## Technology Stack
+
+The mobile application leverages modern mobile technologies:
+
+- **React Native 0.83** - Native mobile performance
+- **Expo 55** - Simplified development and deployment
+- **React 19** - Latest React features
+- **TypeScript** - Type-safe mobile development
+- **Expo Router** - File-based navigation
+- **TanStack Query** - Efficient data management
+
+## Platform Support
+
+<Tabs>
+  <Tab title="iOS">
+    ### iOS Requirements
+    - **iOS 15.0 or later**
+    - iPhone 8 or newer
+    - iPad (5th generation) or newer
+    - iPod touch (7th generation) or newer
+    
+    ### Installation
+    1. Open the **App Store** on your device
+    2. Search for "Relio CRM"
+    3. Tap **Get** to download and install
+    4. Open the app and sign in
+  </Tab>
+  <Tab title="Android">
+    ### Android Requirements
+    - **Android 10.0 (API level 29) or later**
+    - 2GB RAM minimum (4GB recommended)
+    - ARMv7 or ARM64 processor
+    
+    ### Installation
+    1. Open **Google Play Store**
+    2. Search for "Relio CRM"
+    3. Tap **Install**
+    4. Open the app and sign in
+  </Tab>
+</Tabs>
+
+## Mobile-Specific Features
+
+The mobile app includes features optimized for mobile workflows:
+
+### Quick Actions
+- Call or text contacts directly from the app
+- One-tap email composition
+- Voice notes and recording
+- Photo capture for properties
+- Business card scanning
+
+### Native Integrations
+- Contacts app synchronization
+- Calendar integration
+- Push notifications for important updates
+- Biometric authentication (Face ID, Touch ID, Fingerprint)
+- Location services for nearby properties
+
+### Offline Mode
+<Info>
+  The mobile app caches recent data for offline access. View contacts, properties, and notes even without internet connection. Changes sync automatically when you're back online.
+</Info>
+
+### Mobile-Optimized UI
+- Bottom sheet navigation
+- Swipe gestures for common actions
+- Pull-to-refresh data updates
+- Haptic feedback
+- Optimized for one-handed use
+
+## Core Features
+
+### Contact Management
+- View and search contacts
+- Quick call, text, or email
+- Add notes and follow-ups
+- Scan business cards
+- Contact timeline
+
+### Property Management
+- Browse property listings
+- View property details and photos
+- Take property photos on-site
+- Location-based property search
+- Share properties with clients
+
+### Deals & Pipeline
+- View deal pipeline
+- Update deal stages
+- Add notes and activities
+- Track deal progress
+- Quick deal creation
+
+### Communication
+- Send and receive messages
+- Email integration
+- Voice notes
+- Activity timeline
+- Push notifications
+
+### Tasks & Calendar
+- View and create tasks
+- Set reminders
+- Calendar view
+- Meeting scheduling
+- Location-based reminders
+
+## Navigation
+
+The mobile app uses tab-based navigation:
+
+```
+├── Home - Dashboard and quick actions
+├── Contacts - Contact list and search
+├── Properties - Property listings
+├── Deals - Pipeline view
+└── More - Settings and additional features
+```
+
+## Permissions
+
+The app may request the following permissions:
+
+<Tabs>
+  <Tab title="Essential">
+    - **Internet** - Sync data with Relio servers
+    - **Storage** - Cache data for offline access
+    - **Notifications** - Receive important updates
+  </Tab>
+  <Tab title="Optional">
+    - **Camera** - Take photos of properties
+    - **Contacts** - Sync with device contacts
+    - **Calendar** - Sync appointments
+    - **Location** - Find nearby properties
+    - **Microphone** - Record voice notes
+    - **Phone** - Make calls directly from app
+    - **Biometric** - Face ID/Touch ID authentication
+  </Tab>
+</Tabs>
+
+<Note>
+  Optional permissions can be managed in your device settings at any time. The app will function without them, but some features may be limited.
+</Note>
+
+## Performance & Data Usage
+
+### Battery Optimization
+- Background sync is optimized for battery life
+- Reduce battery usage by disabling background refresh
+- Use WiFi when possible for large data syncs
+
+### Data Usage
+- Average data usage: 50-100 MB per month
+- Offline mode reduces data consumption
+- Images are compressed automatically
+- Enable "WiFi only" mode to prevent cellular data usage
+
+## Security
+
+The mobile app includes enterprise-grade security:
+
+- **End-to-end encryption** for data transmission
+- **Biometric authentication** support
+- **Auto-lock** after inactivity
+- **Remote wipe** capability (managed by admin)
+- **Secure storage** for cached data
+
+## Troubleshooting
+
+### App Not Syncing
+1. Check internet connection
+2. Pull down to refresh
+3. Sign out and sign back in
+4. Check app permissions
+
+### Notifications Not Working
+<Tabs>
+  <Tab title="iOS">
+    1. Go to **Settings > Notifications**
+    2. Find **Relio CRM**
+    3. Enable **Allow Notifications**
+    4. Configure notification style
+  </Tab>
+  <Tab title="Android">
+    1. Go to **Settings > Apps > Relio CRM**
+    2. Tap **Notifications**
+    3. Enable all notification categories
+    4. Ensure battery optimization is disabled
+  </Tab>
+</Tabs>
+
+### Performance Issues
+- Clear app cache in settings
+- Update to the latest version
+- Restart your device
+- Reinstall the app if problems persist
+
+## Updates
+
+The mobile app updates regularly with:
+
+- New features and improvements
+- Bug fixes and performance enhancements
+- Security updates
+- UI/UX refinements
+
+<Tabs>
+  <Tab title="iOS">
+    Enable automatic updates:
+    1. Go to **Settings > App Store**
+    2. Enable **App Updates** under Automatic Downloads
+  </Tab>
+  <Tab title="Android">
+    Enable automatic updates:
+    1. Open **Google Play Store**
+    2. Tap your profile icon
+    3. Go to **Settings > Network preferences**
+    4. Select **Auto-update apps**
+  </Tab>
+</Tabs>
+
+## Getting Started
+
+Ready to get started with the mobile app?
+
+1. Download from the App Store or Google Play Store
+2. Sign in with your Relio account
+3. Enable notifications and permissions
+4. Explore the quick start guide in the app
+
+Check out our [Quick Start Guide](/quickstart) for more details.
+
+## Mobile vs Other Platforms
+
+<CardGroup cols={2}>
+  <Card title="Web App" icon="globe" href="/platform/web-app">
+    Full CRM capabilities with advanced features in your browser
+  </Card>
+  <Card title="Desktop App" icon="desktop" href="/platform/desktop-app">
+    Native desktop experience with offline support for power users
+  </Card>
+</CardGroup>

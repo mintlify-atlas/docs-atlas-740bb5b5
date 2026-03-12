@@ -1,0 +1,429 @@
+---
+title: Email Templates
+description: Create reusable email templates with variables for consistent, personalized communication
+---
+
+Email templates allow you to create reusable message formats with dynamic variables that automatically populate with contact, property, company, or deal data.
+
+## Creating Templates
+
+Templates consist of a name, subject line, and HTML body with variable placeholders.
+
+### Template Structure
+
+From `email-templates.ts:6-22`, templates are defined as:
+
+```typescript
+interface EmailTemplate {
+  id: string;
+  workspaceId: string;
+  name: string;           // Internal name for the template
+  subject: string;        // Email subject line (supports variables)
+  body: string;           // HTML body with {{variable}} placeholders
+  createdBy: string;      // User ID who created it
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+### Example Template
+
+Here's a template for following up with property leads:
+
+```html
+<!-- Template Name: Property Follow-Up -->
+<!-- Subject: Following up on {{property.address}} -->
+
+<p>Hi {{contact.firstName}},</p>
+
+<p>I wanted to follow up regarding the property at <strong>{{property.address}}</strong>.</p>
+
+<p>Property Details:</p>
+<ul>
+  <li>Type: {{property.propertyType}}</li>
+  <li>Bedrooms: {{property.bedrooms}}</li>
+  <li>Square Feet: {{property.sqft}}</li>
+  <li>List Price: {{property.listPrice}}</li>
+</ul>
+
+<p>Are you available for a showing this week?</p>
+
+<p>Best regards,<br>
+{{user.name}}<br>
+{{user.email}}</p>
+```
+
+## Template Variables
+
+Variables use double-brace syntax: `{{object.field}}`
+
+### Available Variable Objects
+
+<Tabs>
+  <Tab title="Contact">
+    ```handlebars
+    {{contact.firstName}}
+    {{contact.lastName}}
+    {{contact.email}}
+    {{contact.phone}}
+    {{contact.title}}
+    {{contact.company}}
+    {{contact.primaryLocation}}
+    {{contact.stage}}
+    {{contact.source}}
+    ```
+  </Tab>
+  
+  <Tab title="Property">
+    ```handlebars
+    {{property.address}}
+    {{property.city}}
+    {{property.state}}
+    {{property.zip}}
+    {{property.propertyType}}
+    {{property.status}}
+    {{property.listPrice}}
+    {{property.soldPrice}}
+    {{property.bedrooms}}
+    {{property.bathrooms}}
+    {{property.sqft}}
+    {{property.yearBuilt}}
+    ```
+  </Tab>
+  
+  <Tab title="Company">
+    ```handlebars
+    {{company.name}}
+    {{company.type}}
+    {{company.industry}}
+    {{company.city}}
+    {{company.state}}
+    {{company.website}}
+    {{company.employeeRange}}
+    {{company.estimatedArr}}
+    ```
+  </Tab>
+  
+  <Tab title="Deal">
+    ```handlebars
+    {{deal.name}}
+    {{deal.stage}}
+    {{deal.value}}
+    {{deal.probability}}
+    {{deal.expectedCloseDate}}
+    ```
+  </Tab>
+  
+  <Tab title="User">
+    ```handlebars
+    {{user.name}}
+    {{user.email}}
+    {{user.phone}}
+    {{user.title}}
+    ```
+  </Tab>
+</Tabs>
+
+### Conditional Variables
+
+Use fallback values for optional fields:
+
+```handlebars
+{{contact.firstName || "there"}}
+{{property.bedrooms || "N/A"}}
+{{deal.value || "To be determined"}}
+```
+
+## Using Templates
+
+Templates can be used when composing emails to contacts.
+
+### Loading a Template
+
+```typescript
+// Get all templates in your workspace
+const templates = await api.emailTemplates.list.query();
+
+// Select a template
+const template = templates.find(t => t.name === "Property Follow-Up");
+```
+
+### Populating Variables
+
+When sending an email, the template variables are automatically replaced with actual data:
+
+```typescript
+const context = {
+  contact: {
+    firstName: "John",
+    lastName: "Smith",
+    email: "john@example.com"
+  },
+  property: {
+    address: "123 Main St",
+    propertyType: "Single Family",
+    bedrooms: 3,
+    sqft: 2400,
+    listPrice: "$650,000"
+  },
+  user: {
+    name: "Sarah Johnson",
+    email: "sarah@realestate.com"
+  }
+};
+
+// Variables like {{contact.firstName}} become "John"
+// {{property.address}} becomes "123 Main St"
+// etc.
+```
+
+### Sending with Template
+
+```typescript
+await api.email.send.mutate({
+  to: contact.email,
+  templateId: template.id,
+  context: {
+    contact,
+    property,
+    user: currentUser
+  }
+});
+```
+
+## Managing Templates
+
+### Create Template
+
+```typescript
+await api.emailTemplates.create.mutate({
+  name: "New Listing Alert",
+  subject: "New Property Alert: {{property.address}}",
+  body: `
+    <p>Hi {{contact.firstName}},</p>
+    <p>A new property matching your criteria is now available:</p>
+    <p><strong>{{property.address}}, {{property.city}}, {{property.state}}</strong></p>
+    <p>Price: {{property.listPrice}}</p>
+    <p>Let me know if you'd like to schedule a viewing!</p>
+  `
+});
+```
+
+### Update Template
+
+```typescript
+await api.emailTemplates.update.mutate({
+  id: template.id,
+  subject: "Updated: {{property.address}} - Price Reduced!",
+  body: updatedHtmlBody
+});
+```
+
+### Delete Template
+
+```typescript
+await api.emailTemplates.delete.mutate({
+  id: template.id
+});
+```
+
+## Template Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use descriptive names">
+    Name templates clearly so team members can easily find the right one:
+    - "Initial Contact - Commercial Property"
+    - "Follow-Up - Residential Buyer"
+    - "Price Reduction Announcement"
+  </Accordion>
+
+  <Accordion title="Keep variables consistent">
+    Always use the same variable names across templates. Use `{{contact.firstName}}`, not `{{firstName}}` or `{{contact.first_name}}`.
+  </Accordion>
+
+  <Accordion title="Provide fallbacks">
+    Not all records have all fields populated. Use fallback values:
+    ```handlebars
+    Hi {{contact.firstName || "there"}},
+    ```
+  </Accordion>
+
+  <Accordion title="Preview before sending">
+    Always preview the final email with variables populated before sending to ensure formatting and data are correct.
+  </Accordion>
+
+  <Accordion title="Use semantic HTML">
+    Write templates with proper HTML structure:
+    - Use `<p>` for paragraphs
+    - Use `<ul>` and `<li>` for lists
+    - Use `<strong>` for emphasis
+    - Include proper spacing with margins
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Templates
+
+### Rich Formatting
+
+Templates support full HTML formatting:
+
+```html
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <div style="background: #1e40af; color: white; padding: 20px;">
+    <h1 style="margin: 0;">{{company.name}}</h1>
+  </div>
+  
+  <div style="padding: 20px;">
+    <p>Dear {{contact.firstName}},</p>
+    
+    <div style="background: #f3f4f6; padding: 15px; margin: 20px 0; border-radius: 8px;">
+      <h2 style="margin-top: 0;">Property Highlights</h2>
+      <table style="width: 100%;">
+        <tr>
+          <td><strong>Address:</strong></td>
+          <td>{{property.address}}</td>
+        </tr>
+        <tr>
+          <td><strong>Price:</strong></td>
+          <td>{{property.listPrice}}</td>
+        </tr>
+        <tr>
+          <td><strong>Size:</strong></td>
+          <td>{{property.sqft}} sq ft</td>
+        </tr>
+      </table>
+    </div>
+    
+    <a href="{{property.listingUrl}}" 
+       style="background: #1e40af; color: white; padding: 12px 24px; 
+              text-decoration: none; border-radius: 6px; display: inline-block;">
+      View Full Listing
+    </a>
+  </div>
+  
+  <div style="background: #f9fafb; padding: 15px; margin-top: 20px; 
+              font-size: 12px; color: #6b7280;">
+    <p>{{user.name}} | {{user.email}} | {{user.phone}}</p>
+  </div>
+</div>
+```
+
+### Dynamic Lists
+
+For scenarios with multiple properties or items, templates can include repeating sections:
+
+```html
+<p>Hi {{contact.firstName}},</p>
+
+<p>Here are the properties matching your criteria:</p>
+
+{{#each properties}}
+<div style="border: 1px solid #e5e7eb; padding: 15px; margin: 10px 0;">
+  <h3>{{this.address}}</h3>
+  <p>{{this.propertyType}} | {{this.bedrooms}} bed | {{this.bathrooms}} bath</p>
+  <p><strong>{{this.listPrice}}</strong></p>
+</div>
+{{/each}}
+
+<p>Let me know which properties interest you!</p>
+```
+
+<Note>
+Dynamic list support depends on your template rendering engine. Check your implementation for available helpers.
+</Note>
+
+## Template Organization
+
+### Categories
+
+Organize templates by purpose using naming conventions:
+
+- **Lead Generation**: "Lead - [Type] - [Purpose]"
+- **Follow-Ups**: "Follow-Up - [Stage] - [Type]"
+- **Announcements**: "Announcement - [Event]"
+- **Nurture**: "Nurture - [Frequency] - [Segment]"
+
+### Workspace-Wide Templates
+
+All templates are shared across your workspace. Any team member can use any template, but only the creator (or admins) can edit or delete them.
+
+## Tracking Template Usage
+
+When an email is sent using a template, it creates an activity record:
+
+```typescript
+{
+  type: "email",
+  title: "Sent: Following up on 123 Main St",
+  metadata: {
+    templateId: template.id,
+    templateName: template.name,
+    subject: resolvedSubject,
+    to: contact.email
+  }
+}
+```
+
+This allows you to:
+- Track which templates are most effective
+- See template usage per contact
+- Measure response rates by template
+
+## Example Templates
+
+<CodeGroup>
+```html Cold Outreach
+<p>Hi {{contact.firstName}},</p>
+
+<p>I noticed you recently viewed properties in {{property.city}}. I specialize in 
+{{property.propertyType}} properties in this area and wanted to reach out.</p>
+
+<p>I currently have several listings that might interest you:</p>
+
+<p>Would you like to schedule a call this week to discuss your requirements?</p>
+
+<p>Best,<br>{{user.name}}</p>
+```
+
+```html Price Reduction
+<p>Hi {{contact.firstName}},</p>
+
+<p>Great news! The property at <strong>{{property.address}}</strong> has just been 
+reduced from {{property.originalPrice}} to <strong>{{property.listPrice}}</strong>.</p>
+
+<p>This is an excellent opportunity to make an offer. The property features:</p>
+<ul>
+  <li>{{property.bedrooms}} bedrooms, {{property.bathrooms}} bathrooms</li>
+  <li>{{property.sqft}} square feet</li>
+  <li>{{property.keyFeature1}}</li>
+  <li>{{property.keyFeature2}}</li>
+</ul>
+
+<p>Let's schedule a showing before this opportunity is gone!</p>
+
+<p>{{user.name}}<br>{{user.phone}}</p>
+```
+
+```html Open House Invitation
+<div style="font-family: Arial, sans-serif;">
+  <h1 style="color: #1e40af;">You're Invited to Our Open House!</h1>
+  
+  <p>Hi {{contact.firstName}},</p>
+  
+  <p>Join us for an exclusive open house at:</p>
+  
+  <div style="background: #f0f9ff; padding: 20px; margin: 20px 0;">
+    <h2 style="margin-top: 0;">{{property.address}}</h2>
+    <p><strong>Date:</strong> {{event.date}}<br>
+    <strong>Time:</strong> {{event.time}}</p>
+  </div>
+  
+  <p>This stunning {{property.propertyType}} features {{property.bedrooms}} bedrooms 
+  and {{property.sqft}} sq ft of beautifully appointed living space.</p>
+  
+  <p>Light refreshments will be served. RSVP to {{user.email}}</p>
+  
+  <p>See you there!<br>{{user.name}}</p>
+</div>
+```
+</CodeGroup>

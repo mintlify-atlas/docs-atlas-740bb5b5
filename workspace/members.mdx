@@ -1,0 +1,130 @@
+---
+title: Member Management
+description: Invite team members and manage roles and permissions in your workspace
+---
+
+## Overview
+
+Manage your team by inviting members, assigning roles, and controlling access to workspace features. Member management is available to workspace owners and admins.
+
+## Member Roles
+
+Relio has three workspace roles with different permission levels:
+
+### Owner
+
+The owner has full control over the workspace. There is one owner per workspace.
+
+**Permissions:**
+- All admin permissions
+- Manage workspace billing and subscriptions
+- Delete the workspace
+- Transfer ownership (coming soon)
+
+**API Reference:** `ownerProcedure` in `packages/api/src/index.ts:297`
+
+### Admin
+
+Admins can manage workspace configuration and members.
+
+**Permissions:**
+- All member permissions
+- Delete records (contacts, properties, companies, deals)
+- Manage custom fields, email templates, and views
+- Invite and remove team members
+- Manage workspace integrations
+- Access API tokens and webhooks
+
+**API Reference:** `adminProcedure` in `packages/api/src/index.ts:281`
+
+### Member
+
+Members have read and write access to CRM data.
+
+**Permissions:**
+- View and create contacts, properties, companies, and deals
+- Create and edit activities, tasks, and notes
+- Upload and manage files
+- Use AI features (subject to workspace quota)
+- View workspace insights and dashboards
+
+**API Reference:** `workspaceProcedure` in `packages/api/src/index.ts:148`
+
+<Warning>
+  Only **owners** can manage billing. Members and admins cannot upgrade plans, change seat limits, or access payment settings.
+</Warning>
+
+## Inviting Team Members
+
+Invite new members to your workspace via email invitation.
+
+<Steps>
+  <Step title="Navigate to member settings">
+    Go to **Settings → Workspace → Members**
+  </Step>
+  
+  <Step title="Click 'Invite Member'">
+    Enter the email address of the person you want to invite
+  </Step>
+  
+  <Step title="Select a role">
+    Choose whether the new member should be a **Member** or **Admin**
+  </Step>
+  
+  <Step title="Send invitation">
+    Click **Send Invitation**. The recipient will receive an email with a link to join your workspace.
+  </Step>
+</Steps>
+
+## Managing Permissions
+
+You can change a member's role at any time:
+
+1. Navigate to **Settings → Workspace → Members**
+2. Find the member in the list
+3. Click the role dropdown next to their name
+4. Select the new role
+
+Role changes take effect immediately. If you demote an admin to a member, they will lose access to admin-only features like custom field management and member invitations.
+
+## Removing Members
+
+To remove a member from your workspace:
+
+1. Navigate to **Settings → Workspace → Members**
+2. Find the member in the list
+3. Click the **Remove** button next to their name
+4. Confirm the removal
+
+Removing a member:
+- Immediately revokes their access to the workspace
+- Does not delete their data or records they created
+- Frees up a seat on your plan
+- Cannot be undone (you must re-invite them if needed)
+
+## Seat Limits
+
+Your workspace plan determines how many members can be active:
+
+- **Free plan**: 1 seat
+- **Pro plan**: Varies by subscription (seat-based pricing)
+
+<Warning>
+  If your workspace exceeds its seat limit on the free plan, all members will be locked out until you:
+  - Remove members to get back under the limit
+  - Start a free trial
+  - Upgrade to a Pro plan
+  
+  Only billing and role management features remain accessible during a seat limit lockout.
+</Warning>
+
+Super admins (platform-level users) do not consume a seat and are excluded from seat limit enforcement.
+
+## Technical Details
+
+For developers:
+
+- Member roles are stored in the `member` table with `role` column: `"owner"`, `"admin"`, or `"member"`
+- Role checks are enforced via middleware: `workspaceProcedure`, `adminProcedure`, `ownerProcedure`
+- Seat limit enforcement happens in `workspaceProcedure` (see `packages/api/src/index.ts:217-256`)
+- Super admins (`user.role = "super_admin"`) bypass seat limits entirely

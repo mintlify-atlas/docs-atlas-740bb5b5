@@ -1,0 +1,347 @@
+---
+title: Authentication
+description: Authenticate API requests with workspace API tokens
+---
+
+## Overview
+
+Relio uses **Workspace API Tokens** to authenticate API requests. Each token is scoped to a specific workspace and has granular permissions that control what operations it can perform.
+
+## Token Format
+
+API tokens follow this format:
+
+```
+relio_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Tokens are generated with a `relio_` prefix followed by 48 random hexadecimal characters. The token is only shown once when created - make sure to save it securely.
+
+## Permission System
+
+Each API token has a set of **scoped permissions** that control access to different parts of the API. Each scope can be set to one of three levels:
+
+- `disabled` - No access to this scope
+- `read` - Read-only access (queries only)
+- `read_write` - Full read and write access (queries and mutations)
+
+### Available Permission Scopes
+
+<ParamField path="userManagement" type="string" default="disabled">
+  Access to user and role information
+</ParamField>
+
+<ParamField path="records" type="string" default="disabled">
+  Access to core CRM records (contacts, companies, deals, properties)
+</ParamField>
+
+<ParamField path="relationships" type="string" default="disabled">
+  Access to relationship data between entities
+</ParamField>
+
+<ParamField path="activities" type="string" default="disabled">
+  Access to activity tracking and history
+</ParamField>
+
+<ParamField path="files" type="string" default="disabled">
+  Access to files, attachments, and uploads
+</ParamField>
+
+<ParamField path="objectConfiguration" type="string" default="disabled">
+  Access to custom fields, views, email templates, and UI configuration
+</ParamField>
+
+<ParamField path="listEntries" type="string" default="disabled">
+  Read access to list memberships. Write access requires `listConfiguration` scope.
+</ParamField>
+
+<ParamField path="listConfiguration" type="string" default="disabled">
+  Access to create, update, and delete lists (requires `read_write`)
+</ParamField>
+
+<ParamField path="tags" type="string" default="disabled">
+  Access to tag management
+</ParamField>
+
+<ParamField path="tasks" type="string" default="disabled">
+  Access to task management
+</ParamField>
+
+<ParamField path="notifications" type="string" default="disabled">
+  Access to notification system
+</ParamField>
+
+<ParamField path="webhooks" type="string" default="disabled">
+  Access to webhook configuration
+</ParamField>
+
+<ParamField path="apiKeys" type="string" default="disabled">
+  Access to API token management
+</ParamField>
+
+<ParamField path="preferences" type="string" default="disabled">
+  Access to user and workspace preferences
+</ParamField>
+
+<ParamField path="communications" type="string" default="disabled">
+  Access to email and communication features
+</ParamField>
+
+### Router to Scope Mapping
+
+Here's how API routers map to permission scopes:
+
+| Router | Required Scope |
+|--------|---------------|
+| `contacts`, `companies`, `deals`, `properties` | `records` |
+| `relationships`, `relatedContacts` | `relationships` |
+| `activities` | `activities` |
+| `files`, `attachments`, `uploads` | `files` |
+| `customFields`, `views`, `emailTemplates`, `objectAppearance`, `integrations` | `objectConfiguration` |
+| `lists` (queries) | `listEntries` |
+| `lists` (mutations) | `listConfiguration` |
+| `tags` | `tags` |
+| `tasks` | `tasks` |
+| `notifications` | `notifications` |
+| `email` | `communications` |
+| `workspaceWebhooks` | `webhooks` |
+| `workspaceApiTokens` | `apiKeys` |
+| `preferences` | `preferences` |
+| `getRole` | `userManagement` |
+
+### Permission Enforcement
+
+Permissions are automatically enforced based on the operation type:
+
+- **Queries** and **Subscriptions** require `read` permission or higher
+- **Mutations** require `read_write` permission
+
+```typescript
+// This requires records: "read" or "read_write"
+await client.contacts.list.query({ limit: 10 });
+
+// This requires records: "read_write"
+await client.contacts.create.mutate({ name: "John Doe" });
+```
+
+## Creating API Tokens
+
+<Warning>
+  Only workspace **admins** and **owners** can create and manage API tokens.
+</Warning>
+
+API tokens can be created through the Relio web interface or programmatically:
+
+### Via TypeScript Client
+
+```typescript
+const result = await client.workspaceApiTokens.create.mutate({
+  name: "Production API Token",
+  permissions: {
+    userManagement: "disabled",
+    records: "read_write",
+    relationships: "read_write",
+    activities: "read",
+    files: "read_write",
+    objectConfiguration: "read",
+    listEntries: "read",
+    listConfiguration: "disabled",
+    tags: "read_write",
+    tasks: "disabled",
+    notifications: "disabled",
+    webhooks: "disabled",
+    apiKeys: "disabled",
+    preferences: "disabled",
+    communications: "disabled",
+  },
+});
+
+// IMPORTANT: Save this token securely - it won't be shown again!
+const apiToken = result.token;
+console.log("Token:", apiToken);
+```
+
+### Via HTTP API
+
+```bash
+curl -X POST "https://app.relio.com/api/trpc/workspaceApiTokens.create" \
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Production API Token",
+    "permissions": {
+      "records": "read_write",
+      "relationships": "read_write",
+      "activities": "read",
+      "files": "read_write",
+      "tags": "read_write"
+    }
+  }'
+```
+
+## Using API Tokens
+
+Include your API token in the `Authorization` header as a Bearer token:
+
+```bash
+curl "https://app.relio.com/api/trpc/contacts.list?input={\"limit\":10}" \
+  -H "Authorization: Bearer relio_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+```
+
+With the TypeScript client:
+
+```typescript
+import { createTRPCClient, httpBatchLink } from "@trpc/client";
+import type { AppRouter } from "@relio-sb/api";
+
+const client = createTRPCClient<AppRouter>({
+  links: [
+    httpBatchLink({
+      url: "https://app.relio.com/api/trpc",
+      headers: {
+        Authorization: `Bearer relio_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`,
+      },
+    }),
+  ],
+});
+```
+
+## Token Management
+
+### List All Tokens
+
+```typescript
+const tokens = await client.workspaceApiTokens.list.query();
+
+// Each token includes:
+// - id: Token identifier
+// - name: Token name
+// - tokenPrefix: First 14 characters (e.g., "relio_1234567")
+// - permissions: Current permission levels
+// - createdAt: Creation timestamp
+// - lastUsedAt: Last usage timestamp
+// - revokedAt: Revocation timestamp (if revoked)
+```
+
+### Update Token Permissions
+
+```typescript
+await client.workspaceApiTokens.update.mutate({
+  tokenId: "token_abc123",
+  name: "Updated Token Name",
+  permissions: {
+    records: "read", // Downgrade from read_write to read
+    // ... other permissions
+  },
+});
+```
+
+### Revoke a Token
+
+```typescript
+await client.workspaceApiTokens.revoke.mutate({
+  tokenId: "token_abc123",
+});
+```
+
+Revoked tokens can no longer be used for authentication but remain in the database for audit purposes.
+
+### Delete a Token
+
+```typescript
+await client.workspaceApiTokens.delete.mutate({
+  tokenId: "token_abc123",
+});
+```
+
+Deleting a token permanently removes it from the database.
+
+## Security Best Practices
+
+<Warning>
+  **Never commit API tokens to version control or expose them in client-side code.**
+</Warning>
+
+1. **Principle of Least Privilege**: Only grant the minimum permissions required for each token
+2. **Token Rotation**: Regularly rotate API tokens, especially for production environments
+3. **Separate Tokens**: Use different tokens for different applications or environments
+4. **Secure Storage**: Store tokens in environment variables or secure secret management systems
+5. **Monitor Usage**: Check `lastUsedAt` timestamps to identify unused tokens
+6. **Revoke Compromised Tokens**: Immediately revoke any token that may have been exposed
+
+## Checking Authentication Status
+
+You can verify your authentication and check which token is being used:
+
+```typescript
+const status = await client.authStatus.query();
+
+// Returns:
+// {
+//   authType: "api_key",
+//   userId: "user_abc123",
+//   workspaceId: "workspace_xyz789",
+//   apiToken: {
+//     id: "token_abc123",
+//     name: "Production API Token",
+//     role: "admin"
+//   }
+// }
+```
+
+## Error Responses
+
+### Missing Token
+
+```json
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+```
+
+### Invalid Token
+
+```json
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid or revoked API token"
+  }
+}
+```
+
+### Insufficient Permissions
+
+```json
+{
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "API token lacks read_write permission for records."
+  }
+}
+```
+
+### Route Not Available for Tokens
+
+```json
+{
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "This route is not available for API tokens."
+  }
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Rate Limits" icon="gauge" href="/api/rate-limits">
+    Learn about API rate limits and quotas
+  </Card>
+  <Card title="API Overview" icon="book" href="/api/overview">
+    Explore available API routers and endpoints
+  </Card>
+</CardGroup>

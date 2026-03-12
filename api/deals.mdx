@@ -1,0 +1,273 @@
+---
+title: Deals API
+description: Manage deals and opportunities in your Relio workspace
+---
+
+## deals.list()
+
+List deals with filtering and sorting.
+
+<ParamField path="limit" type="number" default="50">
+  Maximum results
+</ParamField>
+
+<ParamField path="cursor" type="string">
+  Pagination cursor
+</ParamField>
+
+<ParamField path="offset" type="number">
+  Offset pagination
+</ParamField>
+
+<ParamField path="search" type="string">
+  Search by deal name
+</ParamField>
+
+<ParamField path="stage" type="string">
+  Filter by legacy stage
+</ParamField>
+
+<ParamField path="stageId" type="string">
+  Filter by dynamic pipeline stage ID
+</ParamField>
+
+<ParamField path="pipelineId" type="string">
+  Filter by pipeline ID
+</ParamField>
+
+<ParamField path="contactId" type="string">
+  Filter by associated contact
+</ParamField>
+
+<ParamField path="propertyId" type="string">
+  Filter by associated property
+</ParamField>
+
+<ParamField path="companyId" type="string">
+  Filter by associated company
+</ParamField>
+
+<ParamField path="ownerId" type="string">
+  Filter by owner user ID
+</ParamField>
+
+<ParamField path="sortField" type="string">
+  Field to sort by (name, stage, value, createdAt, expectedCloseDate)
+</ParamField>
+
+<ParamField path="sortDirection" type="string">
+  Sort direction (asc or desc)
+</ParamField>
+
+<ResponseField name="items" type="Deal[]">
+  Array of deals with joined metadata
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string | null">
+  Next page cursor
+</ResponseField>
+
+<ResponseField name="total" type="number">
+  Total count
+</ResponseField>
+
+```typescript
+const deals = await trpc.deals.list.query({
+  stageId: "clx_stage_proposal",
+  sortField: "value",
+  sortDirection: "desc"
+});
+```
+
+## deals.create()
+
+Create a new deal.
+
+<ParamField path="name" type="string" required>
+  Deal name
+</ParamField>
+
+<ParamField path="value" type="number">
+  Deal value in cents
+</ParamField>
+
+<ParamField path="probability" type="number">
+  Win probability (0-100)
+</ParamField>
+
+<ParamField path="pipelineId" type="string">
+  Pipeline ID
+</ParamField>
+
+<ParamField path="stageId" type="string">
+  Stage ID within pipeline
+</ParamField>
+
+<ParamField path="expectedCloseDate" type="string">
+  Expected close date (ISO string)
+</ParamField>
+
+<ParamField path="contactId" type="string">
+  Associated contact ID
+</ParamField>
+
+<ParamField path="propertyId" type="string">
+  Associated property ID
+</ParamField>
+
+<ParamField path="companyId" type="string">
+  Associated company ID
+</ParamField>
+
+<ParamField path="ownerId" type="string">
+  Owner user ID (defaults to current user)
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Deal ID
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Deal name
+</ResponseField>
+
+<ResponseField name="stageEnteredAt" type="Date">
+  Timestamp when deal entered current stage
+</ResponseField>
+
+```typescript
+const deal = await trpc.deals.create.mutate({
+  name: "Acme Corp - Office Space",
+  value: 500000,
+  probability: 75,
+  stageId: "clx_stage_proposal",
+  contactId: "clx_contact_123"
+});
+```
+
+## deals.update()
+
+Update an existing deal.
+
+<ParamField path="id" type="string" required>
+  Deal ID
+</ParamField>
+
+<ParamField path="name" type="string">
+  Deal name
+</ParamField>
+
+<ParamField path="value" type="number">
+  Deal value
+</ParamField>
+
+<ParamField path="probability" type="number">
+  Win probability
+</ParamField>
+
+<ParamField path="stageId" type="string">
+  Stage ID (updates stageEnteredAt automatically)
+</ParamField>
+
+<ParamField path="expectedCloseDate" type="string">
+  Expected close date
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Deal ID
+</ResponseField>
+
+<ResponseField name="stageEnteredAt" type="Date">
+  Updated when stage changes
+</ResponseField>
+
+```typescript
+const updated = await trpc.deals.update.mutate({
+  id: "clx123...",
+  stageId: "clx_stage_closed_won",
+  value: 525000
+});
+```
+
+## deals.delete()
+
+Delete a deal. Requires admin role.
+
+<ParamField path="id" type="string" required>
+  Deal ID
+</ParamField>
+
+```typescript
+const deleted = await trpc.deals.delete.mutate("clx123...");
+```
+
+## deals.pipeline()
+
+Get pipeline view with deals grouped by stage.
+
+<ResponseField name="pipelineId" type="string">
+  Default pipeline ID
+</ResponseField>
+
+<ResponseField name="pipelineName" type="string">
+  Pipeline name
+</ResponseField>
+
+<ResponseField name="stages" type="PipelineStage[]">
+  Array of stages with deals
+  - `stage`: Stage ID
+  - `stageName`: Stage name
+  - `stageType`: Stage type (active, won, lost)
+  - `deals`: Array of deals in this stage
+  - `count`: Number of deals
+  - `totalValue`: Sum of deal values
+</ResponseField>
+
+```typescript
+const pipeline = await trpc.deals.pipeline.query();
+
+pipeline.stages.forEach(stage => {
+  console.log(`${stage.stageName}: ${stage.count} deals, $${stage.totalValue}`);
+});
+```
+
+## deals.analytics()
+
+Get deal analytics and metrics.
+
+<ResponseField name="totalDeals" type="number">
+  Total number of deals
+</ResponseField>
+
+<ResponseField name="activeDeals" type="number">
+  Number of active deals
+</ResponseField>
+
+<ResponseField name="totalValue" type="number">
+  Total value of active deals
+</ResponseField>
+
+<ResponseField name="weightedValue" type="number">
+  Total value weighted by probability
+</ResponseField>
+
+<ResponseField name="avgDaysToClose" type="number">
+  Average days from creation to close
+</ResponseField>
+
+<ResponseField name="winRate" type="number">
+  Win rate percentage
+</ResponseField>
+
+<ResponseField name="lossRate" type="number">
+  Loss rate percentage
+</ResponseField>
+
+<ResponseField name="stalledDeals" type="number">
+  Number of deals stalled (>30 days in stage)
+</ResponseField>
+
+```typescript
+const analytics = await trpc.deals.analytics.query();
+console.log(`Win rate: ${analytics.winRate}%`);
+```

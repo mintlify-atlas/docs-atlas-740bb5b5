@@ -1,80 +1,319 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get started with Relio in 5 minutes - set up your account, create a workspace, and add your first records.
 ---
 
-## Get started in three steps
+# Quickstart Guide
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+This guide will walk you through setting up your Relio account and creating your first contact, property, and deal. Let's get started!
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+This guide assumes you're using the web application. The mobile and desktop apps have similar workflows with native UI adaptations.
 </Note>
+
+## Prerequisites
+
+- Access to the Relio web application (hosted or self-hosted)
+- A valid email address for account creation
+
+## Step 1: Create Your Account
+
+<Steps>
+  <Step title="Sign Up">
+    Navigate to the Relio web application and click **Sign Up**.
+    
+    Enter your:
+    - Full name
+    - Email address
+    - Password (minimum requirements will be enforced)
+    
+    Click **Create Account** to continue.
+  </Step>
+  
+  <Step title="Verify Your Email">
+    Check your inbox for a verification email from Relio.
+    
+    Click the verification link to confirm your email address.
+    
+    <Tip>
+    Can't find the email? Check your spam folder or click "Resend verification email" on the login page.
+    </Tip>
+  </Step>
+  
+  <Step title="Sign In">
+    Return to the login page and sign in with your email and password.
+    
+    Relio uses **Better Auth** for secure authentication with session management.
+  </Step>
+</Steps>
+
+## Step 2: Create Your Workspace
+
+<Steps>
+  <Step title="Workspace Setup">
+    On first login, you'll be prompted to create your first workspace (organization).
+    
+    Enter your:
+    - **Workspace Name** - Your company or team name (e.g., "Smith Realty Group")
+    - **Workspace Slug** - A URL-friendly identifier (e.g., "smith-realty")
+    
+    <Info>
+    The workspace slug will be part of your Relio URL: `app.relio.com/smith-realty`
+    
+    Workspace names are checked for profanity and must be unique.
+    </Info>
+  </Step>
+  
+  <Step title="Choose Your Plan">
+    Select your billing plan:
+    - **Free** - 1 seat, basic features
+    - **Pro** - Multiple seats, advanced features, API access
+    
+    You'll start with a free trial of Pro features to explore Relio's full capabilities.
+  </Step>
+  
+  <Step title="Default Pipeline Created">
+    Relio automatically creates a default CRE (Commercial Real Estate) deal pipeline with stages:
+    
+    1. Canvassing
+    2. Qualification  
+    3. LOI (Letter of Intent)
+    4. Due Diligence
+    5. Closed Won
+    6. Closed Lost
+    
+    You can customize this pipeline later or create additional pipelines for different deal types.
+  </Step>
+</Steps>
+
+## Step 3: Add Your First Contact
+
+<Steps>
+  <Step title="Navigate to Contacts">
+    From the main navigation, click **Contacts** to open the contacts page.
+  </Step>
+  
+  <Step title="Create Contact">
+    Click the **+ New Contact** button in the top right.
+    
+    Fill in the contact details:
+    ```json
+    {
+      "firstName": "John",
+      "lastName": "Smith",
+      "email": [{
+        "address": "john.smith@example.com",
+        "isPrimary": true
+      }],
+      "phone": [{
+        "number": "+1-555-0100",
+        "label": "Mobile",
+        "isPrimary": true
+      }],
+      "role": "buyer",
+      "stage": "lead"
+    }
+    ```
+    
+    <Info>
+    Contacts support multiple emails, phone numbers, and addresses. Mark one as primary for quick reference.
+    </Info>
+  </Step>
+  
+  <Step title="Add Contact Details">
+    Enhance your contact record with:
+    - **Title** - Job title or role
+    - **Description** - Notes about the contact
+    - **Social Links** - LinkedIn, Twitter, Facebook, Instagram
+    - **Buyer Needs** - Property preferences (type, price range, units, etc.)
+    - **Connection Strength** - How well you know them (weak/medium/strong)
+    
+    Click **Save** to create the contact.
+  </Step>
+  
+  <Step title="View Contact Details">
+    Click on your newly created contact to open the detail page.
+    
+    Explore the tabs:
+    - **Overview** - All contact information with inline editing
+    - **Activity** - Timeline of notes, calls, emails, and tasks
+    - **Related** - Linked companies, properties, and deals
+    - **Files** - Document attachments
+  </Step>
+</Steps>
+
+## Step 4: Create a Property Record
+
+<Steps>
+  <Step title="Navigate to Properties">
+    Click **Properties** in the main navigation.
+  </Step>
+  
+  <Step title="Create Property">
+    Click **+ New Property** to open the property creation dialog.
+    
+    Enter the property address:
+    ```
+    123 Main Street, San Francisco, CA 94102
+    ```
+    
+    Relio will automatically geocode the address and populate:
+    - Latitude/longitude
+    - City, state, zip
+    - County information
+    
+    <Tip>
+    Use the address autocomplete feature for accurate geocoding. Relio integrates with mapping services for precise location data.
+    </Tip>
+  </Step>
+  
+  <Step title="Add Property Details">
+    Fill in property information:
+    - **Property Type** - Residential, commercial, land, industrial, multi-family
+    - **Status** - Active, pending, sold, off-market
+    - **List Price** - Current asking price (stored in cents internally)
+    - **Bedrooms/Bathrooms** - For residential properties
+    - **Square Footage** - Building and lot size
+    - **Year Built** - Construction year
+    
+    Advanced fields:
+    - **MLS ID** - Multiple Listing Service identifier
+    - **APN/Parcel ID** - County assessor parcel number
+    - **Zoning** - Property zoning designation
+    - **1031 Exchange** - Yes/No for exchange eligibility
+  </Step>
+  
+  <Step title="View on Map">
+    Switch to the **Map** view to see your property visualized.
+    
+    If available, parcel boundaries will be displayed from county assessor data.
+    
+    <Info>
+    Relio uses PostGIS for geospatial queries and Mapbox for map rendering. Property locations are stored as `geometry(Point, 4326)` in the database.
+    </Info>
+  </Step>
+</Steps>
+
+## Step 5: Create Your First Deal
+
+<Steps>
+  <Step title="Navigate to Deals">
+    Click **Deals** in the main navigation to open the deal pipeline view.
+  </Step>
+  
+  <Step title="Create Deal">
+    Click **+ New Deal** to create a deal.
+    
+    Enter deal information:
+    - **Deal Name** - Descriptive name (e.g., "123 Main St Purchase")
+    - **Emoji** - Optional emoji icon for quick visual identification
+    - **Value** - Deal amount in dollars (stored as cents)
+    - **Probability** - Likelihood of closing (0-100%)
+    - **Expected Close Date** - Target closing date
+  </Step>
+  
+  <Step title="Link Records">
+    Connect related records to your deal:
+    - **Contact** - Select the buyer/seller (John Smith from Step 3)
+    - **Property** - Link the property (123 Main St from Step 4)
+    - **Company** - Optionally link a company
+    
+    <Info>
+    Linking records creates a relationship graph. View all deals for a contact from their detail page, or see all contacts interested in a property.
+    </Info>
+  </Step>
+  
+  <Step title="Set Stage & Pipeline">
+    Choose your deal stage:
+    - **Pipeline** - Default CRE Pipeline (or custom pipeline)
+    - **Stage** - Canvassing, Qualification, LOI, Due Diligence, etc.
+    
+    The `stageEnteredAt` timestamp is automatically tracked when you change stages.
+  </Step>
+  
+  <Step title="Configure Visibility">
+    Set deal sharing preferences:
+    - **Private** - Only visible to you
+    - **Workspace** - Visible to entire workspace with configurable access level
+    - **Selected Users** - Share with specific team members
+    
+    Access levels:
+    - **View** - Read-only access
+    - **Edit** - Can modify deal details
+    - **Full Access** - Can edit and delete
+  </Step>
+</Steps>
+
+## Step 6: Add an Activity
+
+<Steps>
+  <Step title="Open Contact or Deal">
+    Navigate back to your contact or deal detail page.
+  </Step>
+  
+  <Step title="Create Activity">
+    In the **Activity** tab, you'll see the activity editor.
+    
+    Create a note or log a call:
+    - Click the **Note** or **Call** button
+    - Type your content in the rich text editor (powered by TipTap)
+    - Optionally @mention team members
+    - Click **Save** to add the activity
+    
+    <Tip>
+    Activities are shown in reverse chronological order. System activities (record created, field updated) are automatically tracked.
+    </Tip>
+  </Step>
+  
+  <Step title="Real-Time Collaboration">
+    If other users are viewing the same record, you'll see:
+    - **Avatar stack** at the top showing who's currently viewing
+    - **Typing indicators** when someone is composing a note
+    - **Live updates** when activities are added without manual refresh
+    
+    <Info>
+    Relio uses Supabase Realtime Presence for real-time collaboration features. Each workspace has a presence channel: `workspace:{orgSlug}`
+    </Info>
+  </Step>
+</Steps>
+
+## Next Steps
+
+Congratulations! You've created your first contact, property, and deal in Relio. Here's what to explore next:
+
+<CardGroup cols={2}>
+  <Card title="Manage Deals" icon="list-check" href="/features/deals">
+    Learn more about deal pipelines and stages
+  </Card>
+  <Card title="AI Analytics" icon="brain" href="/features/ai-analytics">
+    Explore AI-powered insights for your data
+  </Card>
+  <Card title="Workspace Settings" icon="plug" href="/workspace/integrations">
+    Set up integrations and manage your workspace
+  </Card>
+  <Card title="Invite Team Members" icon="users" href="/workspace/members">
+    Add team members to your workspace and manage permissions
+  </Card>
+</CardGroup>
+
+## Mobile & Desktop Apps
+
+Once you're comfortable with the web app, download Relio for your other devices:
+
+- **iOS/Android** - Search for "Relio CRM" in the App Store or Google Play
+- **Desktop** - Download the native app for Windows, Mac, or Linux from the downloads page
+
+All platforms sync in real-time, so your data is always up to date.
+
+<Warning>
+Make sure to complete email verification before using mobile or desktop apps. Authentication is handled by Better Auth across all platforms.
+</Warning>
+
+## Getting Help
+
+Need assistance? Here are your resources:
+
+- **Documentation** - Browse our complete docs for detailed guides
+- **API Reference** - Explore the tRPC API for custom integrations
+- **Support** - Contact our support team from within the app
+- **Community** - Join other Relio users to share tips and best practices

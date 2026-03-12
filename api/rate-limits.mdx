@@ -1,0 +1,386 @@
+---
+title: Rate Limits
+description: Understand API rate limits and how to handle them
+---
+
+## Overview
+
+Relio enforces rate limits on all API requests to ensure fair usage and maintain service quality for all users. Rate limits are applied **per workspace** and vary based on your billing plan tier.
+
+## Rate Limit Buckets
+
+Rate limits are enforced using three separate **buckets**, each with its own quota:
+
+### 1. General Bucket
+
+Applies to **all API requests** (queries, mutations, and subscriptions).
+
+| Plan Tier | Requests per Minute |
+|-----------|--------------------|
+| **Free**  | 180                |
+| **Pro**   | 600                |
+
+### 2. Mutation Bucket
+
+Applies only to **mutation operations** (create, update, delete).
+
+| Plan Tier | Mutations per Minute |
+|-----------|---------------------|
+| **Free**  | 30                  |
+| **Pro**   | 150                 |
+
+### 3. Heavy Operation Bucket
+
+Applies to **resource-intensive operations** like AI features, bulk operations, and enrichment.
+
+| Plan Tier | Heavy Operations per Minute |
+|-----------|--------------------------|
+| **Free**  | 10                       |
+| **Pro**   | 60                       |
+
+### Heavy Operations
+
+The following patterns are classified as heavy operations:
+
+- `ai.*` - All AI-powered features
+- `*.bulkCreate` - Bulk creation operations
+- `*.exportAll` - Data export operations
+- `*.saveMessages` - Batch message operations
+- `*.enrich` - Enrichment operations
+
+## How Rate Limits Work
+
+Rate limits are calculated using a **sliding window** approach with 1-minute windows:
+
+1. Each request increments the counter for its applicable bucket(s)
+2. A single request may increment multiple buckets (e.g., a mutation increments both general and mutation buckets)
+3. Counters automatically reset after 60 seconds from the window start
+4. If any bucket exceeds its limit, the request is rejected with a `429 Too Many Requests` error
+
+### Example
+
+For a **Free tier workspace**, a bulk contact creation request:
+
+```typescript
+await client.contacts.bulkCreate.mutate({ contacts: [...] });
+```
+
+This request counts against:
+- ✅ **General bucket**: 1 of 180 requests
+- ✅ **Mutation bucket**: 1 of 30 mutations  
+- ✅ **Heavy bucket**: 1 of 10 heavy operations
+
+## Rate Limit Headers
+
+While tRPC doesn't use traditional HTTP headers in the same way as REST APIs, rate limit information is included in error responses when limits are exceeded.
+
+## Rate Limit Errors
+
+When you exceed a rate limit, you'll receive a `TOO_MANY_REQUESTS` error:
+
+```json
+{
+  "error": {
+    "code": "TOO_MANY_REQUESTS",
+    "message": "Rate limit exceeded for mutation.",
+    "data": {
+      "code": "TOO_MANY_REQUESTS",
+      "httpStatus": 429,
+      "rateLimit": {
+        "retryAfterSeconds": 45,
+        "bucket": "mutation",
+        "limit": 30
+      }
+    }
+  }
+}
+```
+
+### Error Fields
+
+<ParamField path="rateLimit.retryAfterSeconds" type="number">
+  Number of seconds to wait before retrying (1-60)
+</ParamField>
+
+<ParamField path="rateLimit.bucket" type="string">
+  Which bucket was exceeded: `general`, `mutation`, or `heavy`
+</ParamField>
+
+<ParamField path="rateLimit.limit" type="number">
+  The limit for this bucket (requests per minute)
+</ParamField>
+
+## Handling Rate Limits
+
+### Retry with Exponential Backoff
+
+```typescript
+import { TRPCClientError } from "@trpc/client";
+
+async function makeRequestWithRetry<T>(
+  requestFn: () => Promise<T>,
+  maxRetries = 3
+): Promise<T> {
+  let lastError: TRPCClientError<any> | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await requestFn();
+    } catch (error) {
+      if (error instanceof TRPCClientError) {
+        const rateLimit = error.data?.rateLimit;
+        
+        if (error.data?.code === "TOO_MANY_REQUESTS" && rateLimit) {
+          lastError = error;
+          
+          if (attempt < maxRetries) {
+            // Wait for the retry-after period plus a small buffer
+            const waitMs = (rateLimit.retryAfterSeconds + 1) * 1000;
+            console.log(`Rate limited on ${rateLimit.bucket} bucket. Waiting ${waitMs}ms...`);
+            await new Promise(resolve => setTimeout(resolve, waitMs));
+            continue;
+          }
+        }
+      }
+      throw error;
+    }
+  }
+
+  throw lastError || new Error("Max retries exceeded");
+}
+
+// Usage
+const contacts = await makeRequestWithRetry(() =>
+  client.contacts.list.query({ limit: 100 })
+);
+```
+
+### Rate Limit-Aware Batch Processing
+
+```typescript
+interface RateLimitConfig {
+  requestsPerMinute: number;
+  batchSize: number;
+}
+
+async function processBatchWithRateLimit<T, R>(
+  items: T[],
+  processFn: (batch: T[]) => Promise<R[]>,
+  config: RateLimitConfig
+): Promise<R[]> {
+  const { requestsPerMinute, batchSize } = config;
+  const delayBetweenBatches = (60 * 1000) / (requestsPerMinute / batchSize);
+  
+  const results: R[] = [];
+  
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    
+    try {
+      const batchResults = await processFn(batch);
+      results.push(...batchResults);
+      
+      // Wait between batches to stay under rate limit
+      if (i + batchSize < items.length) {
+        await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
+      }
+    } catch (error) {
+      if (error instanceof TRPCClientError && 
+          error.data?.code === "TOO_MANY_REQUESTS") {
+        const retryAfter = error.data.rateLimit.retryAfterSeconds * 1000;
+        await new Promise(resolve => setTimeout(resolve, retryAfter));
+        // Retry this batch
+        i -= batchSize;
+      } else {
+        throw error;
+      }
+    }
+  }
+  
+  return results;
+}
+
+// Usage for Free tier (30 mutations/min, process 5 at a time)
+const contactsToCreate = [/* 100 contacts */];
+
+const created = await processBatchWithRateLimit(
+  contactsToCreate,
+  async (batch) => {
+    const promises = batch.map(contact =>
+      client.contacts.create.mutate(contact)
+    );
+    return Promise.all(promises);
+  },
+  { requestsPerMinute: 30, batchSize: 5 }
+);
+```
+
+## Best Practices
+
+### 1. Cache Responses
+
+Cache API responses when possible to reduce the number of requests:
+
+```typescript
+const cache = new Map<string, { data: any; expiry: number }>();
+
+function getCached<T>(key: string, ttlMs: number, fetchFn: () => Promise<T>): Promise<T> {
+  const cached = cache.get(key);
+  
+  if (cached && cached.expiry > Date.now()) {
+    return Promise.resolve(cached.data);
+  }
+  
+  return fetchFn().then(data => {
+    cache.set(key, { data, expiry: Date.now() + ttlMs });
+    return data;
+  });
+}
+
+// Cache contact list for 5 minutes
+const contacts = await getCached(
+  "contacts-list",
+  5 * 60 * 1000,
+  () => client.contacts.list.query({ limit: 100 })
+);
+```
+
+### 2. Use Batch Requests
+
+Batch multiple operations into a single request when using the tRPC client:
+
+```typescript
+import { createTRPCClient, httpBatchLink } from "@trpc/client";
+
+const client = createTRPCClient<AppRouter>({
+  links: [
+    httpBatchLink({
+      url: "https://app.relio.com/api/trpc",
+      headers: { Authorization: `Bearer ${token}` },
+      maxURLLength: 2083, // Batch multiple requests automatically
+    }),
+  ],
+});
+
+// These will be batched into a single HTTP request
+const [contacts, companies, deals] = await Promise.all([
+  client.contacts.list.query({ limit: 10 }),
+  client.companies.list.query({ limit: 10 }),
+  client.deals.list.query({ limit: 10 }),
+]);
+```
+
+### 3. Optimize Query Patterns
+
+Fetch only what you need:
+
+```typescript
+// ❌ Bad: Fetching all data when you only need names
+const contacts = await client.contacts.list.query({
+  limit: 1000,
+});
+const names = contacts.map(c => c.name);
+
+// ✅ Good: Use pagination and field selection
+const contacts = await client.contacts.list.query({
+  limit: 100,
+  select: ["id", "name"],
+});
+```
+
+### 4. Monitor Your Usage
+
+Track rate limit errors and adjust your implementation:
+
+```typescript
+class RateLimitMonitor {
+  private errors: Array<{ timestamp: number; bucket: string }> = [];
+  
+  recordError(bucket: string) {
+    this.errors.push({ timestamp: Date.now(), bucket });
+    
+    // Keep only last hour of errors
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    this.errors = this.errors.filter(e => e.timestamp > oneHourAgo);
+  }
+  
+  getErrorRate(bucket?: string): number {
+    const filtered = bucket 
+      ? this.errors.filter(e => e.bucket === bucket)
+      : this.errors;
+    return filtered.length;
+  }
+  
+  shouldBackoff(threshold = 5): boolean {
+    return this.getErrorRate() > threshold;
+  }
+}
+
+const monitor = new RateLimitMonitor();
+
+try {
+  await client.contacts.create.mutate(data);
+} catch (error) {
+  if (error instanceof TRPCClientError && 
+      error.data?.code === "TOO_MANY_REQUESTS") {
+    monitor.recordError(error.data.rateLimit.bucket);
+    
+    if (monitor.shouldBackoff()) {
+      console.warn("High rate limit error rate detected. Consider optimizing requests.");
+    }
+  }
+}
+```
+
+### 5. Upgrade for Higher Limits
+
+If you consistently hit rate limits, consider upgrading to the **Pro plan** for:
+
+- 3.3× more general requests (600 vs 180 per minute)
+- 5× more mutations (150 vs 30 per minute)
+- 6× more heavy operations (60 vs 10 per minute)
+
+## Plan Comparison
+
+| Feature | Free | Pro |
+|---------|------|-----|
+| General requests/min | 180 | 600 |
+| Mutations/min | 30 | 150 |
+| Heavy operations/min | 60 | 10 |
+| Burst protection | 1 minute | 1 minute |
+| Rate limit headers | ✅ | ✅ |
+
+## Frequently Asked Questions
+
+<AccordionGroup>
+  <Accordion title="Do rate limits apply to both API tokens and session-based requests?">
+    Yes, rate limits apply to all authenticated requests to your workspace, regardless of whether they use an API token or a user session.
+  </Accordion>
+
+  <Accordion title="Are rate limits shared across all API tokens in a workspace?">
+    Yes, rate limits are enforced at the **workspace level**, not per token. All API tokens and user sessions in the same workspace share the same rate limit buckets.
+  </Accordion>
+
+  <Accordion title="What happens if I exceed the rate limit?">
+    Your request will be rejected with a `429 Too Many Requests` error that includes the number of seconds to wait before retrying.
+  </Accordion>
+
+  <Accordion title="Can I request a rate limit increase?">
+    Pro plan rate limits are designed to accommodate most use cases. If you have exceptional needs, contact support to discuss custom enterprise plans.
+  </Accordion>
+
+  <Accordion title="How do I know which bucket I'm hitting?">
+    The error response includes a `rateLimit.bucket` field that tells you which bucket was exceeded: `general`, `mutation`, or `heavy`.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/api/authentication">
+    Learn about API tokens and permissions
+  </Card>
+  <Card title="API Overview" icon="book" href="/api/overview">
+    Explore available API routers and endpoints
+  </Card>
+</CardGroup>

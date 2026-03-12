@@ -1,0 +1,423 @@
+---
+title: Custom Fields
+description: Add custom fields to contacts, properties, companies, and deals
+---
+
+## Overview
+
+Custom Fields allow you to extend Relio's standard data model with your own fields. Each field is scoped to a specific entity type (contact, property, company, or deal) and can be one of several data types.
+
+## Field Types
+
+Relio supports the following custom field types:
+
+| Type | Description | Example |
+|------|-------------|----------|
+| `text` | Single-line text | "Preferred contact method" |
+| `number` | Numeric value | "Commission rate" |
+| `date` | Date value | "License expiration date" |
+| `boolean` | True/false checkbox | "Open to co-listing" |
+| `select` | Single choice from predefined options | "Lead source" |
+| `multi_select` | Multiple choices from predefined options | "Specializations" |
+| `url` | URL/link | "Portfolio website" |
+| `email` | Email address | "Assistant email" |
+| `phone` | Phone number | "Office direct line" |
+| `currency` | Monetary value | "Referral fee" |
+
+## List Custom Fields
+
+Retrieve all custom field definitions for a specific entity type.
+
+```typescript
+const fields = await trpc.customFields.list.query({
+  entityType: "contact"
+});
+```
+
+### Parameters
+
+<ParamField query="entityType" type="enum" required>
+  The entity type to retrieve fields for. One of: `contact`, `property`, `company`, `deal`
+</ParamField>
+
+### Response
+
+Returns an array of custom field definitions, ordered by `sortOrder` and `createdAt`.
+
+<ResponseField name="id" type="string" required>
+  Field definition ID (CUID2)
+</ResponseField>
+
+<ResponseField name="workspaceId" type="string" required>
+  Workspace ID this field belongs to
+</ResponseField>
+
+<ResponseField name="entityType" type="string" required>
+  Entity type: `contact`, `property`, `company`, or `deal`
+</ResponseField>
+
+<ResponseField name="label" type="string" required>
+  Display label shown in the UI
+</ResponseField>
+
+<ResponseField name="slug" type="string" required>
+  URL-safe slug (auto-generated from label)
+</ResponseField>
+
+<ResponseField name="fieldType" type="string" required>
+  Data type (see Field Types table above)
+</ResponseField>
+
+<ResponseField name="required" type="boolean" required>
+  Whether this field is required (default: false)
+</ResponseField>
+
+<ResponseField name="sortOrder" type="number" required>
+  Display order (0-based)
+</ResponseField>
+
+<ResponseField name="options" type="string[]">
+  Available options for `select` and `multi_select` fields
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Optional help text / description
+</ResponseField>
+
+<ResponseField name="createdAt" type="timestamp" required>
+  When the field was created
+</ResponseField>
+
+<ResponseField name="updatedAt" type="timestamp" required>
+  When the field was last updated
+</ResponseField>
+
+## Create Custom Field
+
+Create a new custom field definition.
+
+```typescript
+const field = await trpc.customFields.create.mutate({
+  entityType: "contact",
+  label: "Lead Source",
+  fieldType: "select",
+  required: false,
+  description: "Where did this lead come from?",
+  options: ["Referral", "Website", "Cold Outreach", "Event", "Other"]
+});
+```
+
+<Info>
+  The `slug` is auto-generated from the label. For example, "Lead Source" becomes `lead_source`. Slugs must be unique within a workspace and entity type.
+</Info>
+
+### Parameters
+
+<ParamField body="entityType" type="enum" required>
+  Entity type: `contact`, `property`, `company`, or `deal`
+</ParamField>
+
+<ParamField body="label" type="string" required>
+  Display label (1-100 characters)
+</ParamField>
+
+<ParamField body="fieldType" type="enum" required>
+  Field data type (see Field Types table)
+</ParamField>
+
+<ParamField body="required" type="boolean">
+  Whether the field is required (default: false)
+</ParamField>
+
+<ParamField body="description" type="string">
+  Optional help text (max 500 characters)
+</ParamField>
+
+<ParamField body="options" type="string[]">
+  Required for `select` and `multi_select` types. Array of option values.
+</ParamField>
+
+### Response
+
+Returns the created custom field definition with all fields.
+
+### Errors
+
+- **CONFLICT**: A field with the same slug already exists for this entity type
+- **BAD_REQUEST**: Invalid field type or missing options for select fields
+
+## Update Custom Field
+
+Update a custom field definition.
+
+```typescript
+const updated = await trpc.customFields.update.mutate({
+  id: "cm1field123",
+  label: "Primary Lead Source",
+  required: true,
+  options: ["Referral", "Website", "Cold Outreach", "Event", "Partner", "Other"]
+});
+```
+
+<Warning>
+  Changing a field's type or options may affect existing data. Handle with care in production workspaces.
+</Warning>
+
+### Parameters
+
+<ParamField body="id" type="string" required>
+  Field definition ID
+</ParamField>
+
+<ParamField body="label" type="string">
+  New display label (1-100 characters)
+</ParamField>
+
+<ParamField body="required" type="boolean">
+  Update required status
+</ParamField>
+
+<ParamField body="description" type="string">
+  Update or clear description (pass `null` to clear)
+</ParamField>
+
+<ParamField body="options" type="string[]">
+  Update options for select fields (pass `null` to clear)
+</ParamField>
+
+<ParamField body="sortOrder" type="number">
+  Change display order (0-based integer)
+</ParamField>
+
+### Response
+
+Returns the updated custom field definition.
+
+### Errors
+
+- **NOT_FOUND**: Field not found or doesn't belong to your workspace
+
+## Delete Custom Field
+
+Delete a custom field definition. This will also delete all values for this field across all records.
+
+```typescript
+await trpc.customFields.delete.mutate("cm1field123");
+```
+
+<Warning>
+  Deleting a custom field is permanent and will remove all stored values for that field. This action cannot be undone.
+</Warning>
+
+### Parameters
+
+<ParamField body="id" type="string" required>
+  Field definition ID to delete
+</ParamField>
+
+### Response
+
+<ResponseField name="id" type="string" required>
+  The ID of the deleted field
+</ResponseField>
+
+### Errors
+
+- **NOT_FOUND**: Field not found or doesn't belong to your workspace
+
+## Get Custom Field Values
+
+Retrieve all custom field values for a specific record.
+
+```typescript
+const values = await trpc.customFields.getValues.query({
+  entityType: "contact",
+  recordId: "cm1contact123"
+});
+```
+
+### Parameters
+
+<ParamField query="entityType" type="enum" required>
+  Entity type: `contact`, `property`, `company`, or `deal`
+</ParamField>
+
+<ParamField query="recordId" type="string" required>
+  The record ID to retrieve values for
+</ParamField>
+
+### Response
+
+Returns an array of field definitions with their values for this record:
+
+<ResponseField name="field" type="object" required>
+  The complete field definition (same structure as list response)
+</ResponseField>
+
+<ResponseField name="valueId" type="string">
+  The custom field value ID (null if no value set)
+</ResponseField>
+
+<ResponseField name="value" type="string">
+  The stored value (null if not set). For `multi_select`, this is a JSON array string.
+</ResponseField>
+
+```typescript
+// Example response
+[
+  {
+    field: {
+      id: "cm1field123",
+      label: "Lead Source",
+      fieldType: "select",
+      options: ["Referral", "Website", "Cold Outreach"],
+      // ... other field properties
+    },
+    valueId: "cm1value456",
+    value: "Referral"
+  },
+  {
+    field: {
+      id: "cm1field789",
+      label: "Commission Rate",
+      fieldType: "number",
+      // ...
+    },
+    valueId: null,
+    value: null
+  }
+]
+```
+
+## Set Custom Field Value
+
+Set or update a custom field value for a record. This operation uses upsert logic: if a value exists, it's updated; otherwise, a new value is created.
+
+```typescript
+const value = await trpc.customFields.setValue.mutate({
+  fieldId: "cm1field123",
+  recordId: "cm1contact123",
+  value: "Referral"
+});
+```
+
+### Parameters
+
+<ParamField body="fieldId" type="string" required>
+  The custom field definition ID
+</ParamField>
+
+<ParamField body="recordId" type="string" required>
+  The record ID to set the value for
+</ParamField>
+
+<ParamField body="value" type="string" required>
+  The value to set. For `multi_select`, pass a JSON array string (e.g., `'["Option 1", "Option 2"]'`). Pass `null` to clear the value.
+</ParamField>
+
+### Response
+
+Returns the created or updated custom field value:
+
+<ResponseField name="id" type="string" required>
+  Custom field value ID
+</ResponseField>
+
+<ResponseField name="workspaceId" type="string" required>
+  Workspace ID
+</ResponseField>
+
+<ResponseField name="fieldId" type="string" required>
+  Field definition ID
+</ResponseField>
+
+<ResponseField name="recordId" type="string" required>
+  Record ID
+</ResponseField>
+
+<ResponseField name="value" type="string">
+  The stored value
+</ResponseField>
+
+<ResponseField name="createdAt" type="timestamp" required>
+  When the value was created
+</ResponseField>
+
+<ResponseField name="updatedAt" type="timestamp" required>
+  When the value was last updated
+</ResponseField>
+
+### Errors
+
+- **NOT_FOUND**: Field not found or doesn't belong to your workspace
+
+## Data Storage
+
+Custom field values use an Entity-Attribute-Value (EAV) pattern:
+
+- All values are stored as text in the database
+- Values are parsed according to the field's `fieldType`
+- For `multi_select` fields, values are stored as JSON arrays
+- Each (field, record) pair has at most one value row
+
+## Field Validation
+
+When setting values:
+
+- **text**: Any string value
+- **number**: Must be a valid numeric string
+- **date**: ISO 8601 date string (YYYY-MM-DD)
+- **boolean**: "true" or "false"
+- **select**: Must match one of the defined options
+- **multi_select**: JSON array of strings, each matching a defined option
+- **url**: Must be a valid URL
+- **email**: Must be a valid email address
+- **phone**: Any string (format validation is flexible)
+- **currency**: Numeric value in cents (smallest currency unit)
+
+## Example: Building a Lead Intake Form
+
+```typescript
+// 1. Create custom fields
+const leadSourceField = await trpc.customFields.create.mutate({
+  entityType: "contact",
+  label: "Lead Source",
+  fieldType: "select",
+  required: true,
+  options: ["Referral", "Website", "Cold Outreach", "Event"]
+});
+
+const budgetField = await trpc.customFields.create.mutate({
+  entityType: "contact",
+  label: "Budget Range",
+  fieldType: "select",
+  required: false,
+  options: ["Under $500k", "$500k-$1M", "$1M-$2M", "$2M+"]
+});
+
+// 2. Create contact
+const contact = await trpc.contacts.create.mutate({
+  firstName: "Jane",
+  lastName: "Smith",
+  email: [{address: "jane@example.com", isPrimary: true}]
+});
+
+// 3. Set custom field values
+await trpc.customFields.setValue.mutate({
+  fieldId: leadSourceField.id,
+  recordId: contact.id,
+  value: "Referral"
+});
+
+await trpc.customFields.setValue.mutate({
+  fieldId: budgetField.id,
+  recordId: contact.id,
+  value: "$1M-$2M"
+});
+
+// 4. Retrieve values
+const values = await trpc.customFields.getValues.query({
+  entityType: "contact",
+  recordId: contact.id
+});
+```

@@ -1,0 +1,228 @@
+---
+title: Contact Management
+description: Manage your real estate contacts, track relationships, and organize your network
+---
+
+## Overview
+
+Contacts are the foundation of your CRM. Track buyers, sellers, agents, investors, and other key players in your real estate network with comprehensive contact profiles.
+
+<CardGroup cols={2}>
+  <Card title="Contact Fields" icon="user">
+    Store complete contact information including multiple emails, phones, and addresses
+  </Card>
+  <Card title="Relationships" icon="link">
+    Link contacts to companies, properties, and deals to map your network
+  </Card>
+  <Card title="Smart Tracking" icon="chart-line">
+    Track connection strength, engagement scores, and interaction history
+  </Card>
+  <Card title="Buyer Profiles" icon="house">
+    Define buyer needs with property preferences and investment criteria
+  </Card>
+</CardGroup>
+
+## Creating Contacts
+
+<Steps>
+  <Step title="Add basic information">
+    Start with required fields:
+    - `firstName` - Contact's first name
+    - `lastName` - Contact's last name
+    
+    These are the only required fields to create a contact.
+  </Step>
+  
+  <Step title="Add contact methods">
+    Add email addresses, phone numbers, and physical addresses:
+    
+    **Email**: Array of email objects with:
+    - `address` - Email address
+    - `label` - Optional label (e.g., "Work", "Personal")
+    - `isPrimary` - Mark as primary contact method
+    - `isBad` - Flag invalid/bounced emails
+    
+    **Phone**: Array of phone objects with:
+    - `number` - Phone number
+    - `label` - Optional label
+    - `isPrimary` - Mark as primary
+    - `isBad` - Flag invalid numbers
+    
+    **Address**: Array of address objects with:
+    - `street` - Street address
+    - `street2` - Apt/Suite (optional)
+    - `city`, `state`, `zip` - Location details
+    - `label` - Address type
+    - `isPrimary` - Mark as primary
+  </Step>
+  
+  <Step title="Set contact role and stage">
+    Categorize your contact:
+    - `role` - Contact type: `buyer`, `seller`, `agent`, `landlord`, `tenant`, `investor`, `other`
+    - `stage` - Pipeline stage: `lead`, `prospect`, `active`, `under_contract`, `closed`, `nurture`
+    - `source` - How you met: `referral`, `inbound`, `cold_outreach`, `social`, `website`, `import`, `other`
+  </Step>
+  
+  <Step title="Add professional details">
+    Include business information:
+    - `title` - Job title
+    - `description` - Notes about the contact
+    - `ownerId` - Assign to a team member
+  </Step>
+</Steps>
+
+## Contact Fields Reference
+
+### Core Information
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `firstName` | text | First name (required) |
+| `lastName` | text | Last name (required) |
+| `email` | jsonb | Array of email objects |
+| `phone` | jsonb | Array of phone objects |
+| `address` | jsonb | Array of address objects |
+| `avatarUrl` | text | Profile picture URL |
+| `title` | text | Job title |
+| `description` | text | Notes and description |
+
+### Classification
+
+| Field | Type | Values |
+|-------|------|--------|
+| `role` | enum | `buyer`, `seller`, `agent`, `landlord`, `tenant`, `investor`, `other` |
+| `stage` | enum | `lead`, `prospect`, `active`, `under_contract`, `closed`, `nurture` |
+| `source` | enum | `referral`, `inbound`, `cold_outreach`, `social`, `website`, `import`, `other` |
+
+### Relationship Tracking
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `connectionStrength` | enum | `very_weak`, `weak`, `good`, `strong`, `very_strong` |
+| `connectionScore` | integer | Numeric engagement score (0+) |
+| `lastActivity` | timestamp | Last interaction date |
+| `lastEmailInteraction` | timestamp | Last email exchange |
+| `lastCalendarInteraction` | timestamp | Last meeting |
+
+<Info>
+  Connection strength and scores are automatically calculated based on interaction frequency and recency.
+</Info>
+
+### Social Profiles
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `linkedIn` | text | LinkedIn profile URL |
+| `twitter` | text | Twitter/X handle |
+| `twitterFollowerCount` | integer | Twitter follower count |
+| `facebook` | text | Facebook profile |
+| `instagram` | text | Instagram handle |
+| `angelList` | text | AngelList profile |
+
+### Location & Geography
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `primaryLocation` | text | Primary city/region |
+| `latitude` | double | Geolocation latitude |
+| `longitude` | double | Geolocation longitude |
+| `preferredAreas` | jsonb | Preferred geographic areas |
+
+### Buyer-Specific Fields
+
+For contacts with `role: "buyer"`, track their property search criteria:
+
+```json
+"buyerNeeds": {
+  "propertyType": "multi_family",
+  "minUnits": 10,
+  "maxUnits": 50,
+  "minPrice": 2000000,
+  "maxPrice": 8000000,
+  "minEquity": 25,
+  "maxEquity": 40,
+  "yearBuiltFrom": 1980,
+  "yearBuiltTo": 2020,
+  "exchange": true,
+  "cap": 6.5
+}
+```
+
+**Buyer Needs Fields**:
+- `propertyType` - `residential`, `commercial`, `land`, `industrial`, `multi_family`
+- `minUnits`, `maxUnits` - Unit count range
+- `minPrice`, `maxPrice` - Price range in dollars
+- `minEquity`, `maxEquity` - Equity percentage range
+- `yearBuiltFrom`, `yearBuiltTo` - Construction year range
+- `exchange` - 1031 exchange preference
+- `cap` - Target cap rate percentage
+
+<Tip>
+  Use buyer needs to automatically match contacts with properties in your pipeline.
+</Tip>
+
+## Filtering and Searching
+
+Contacts are indexed for fast searching by:
+- **Workspace** - All queries are scoped to your workspace
+- **Owner** - Find contacts assigned to specific team members
+- **Role** - Filter by buyer, seller, agent, etc.
+- **Stage** - Search by pipeline stage
+- **Last Activity** - Sort by recent interactions
+
+<Note>
+  Contact searches automatically filter by workspace to ensure data isolation between organizations.
+</Note>
+
+## Contact Relationships
+
+Contacts can be linked to:
+- **Companies** - Employer, brokerage, or business association
+- **Properties** - Properties they own, are selling, or interested in buying
+- **Deals** - Active transactions and opportunities
+- **Activities** - Call logs, meetings, notes, and emails
+- **Tasks** - Follow-up items and action items
+
+These relationships create a comprehensive view of each contact's role in your business.
+
+## Custom Fields
+
+Beyond the standard schema, you can add custom fields to contacts for workspace-specific data needs. Custom fields support multiple data types including text, numbers, dates, and select lists.
+
+<Card title="Learn More" icon="book" href="/features/custom-fields">
+  See the Custom Fields documentation for details on extending contact records
+</Card>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Keep contact information current">
+    Regularly update email and phone fields, marking bad addresses with `isBad: true` to prevent bounces and maintain data quality.
+  </Accordion>
+  
+  <Accordion title="Use stages to track progress">
+    Move contacts through stages (`lead` → `prospect` → `active` → `closed`) to visualize your pipeline and track conversion rates.
+  </Accordion>
+  
+  <Accordion title="Track connection strength">
+    The `connectionStrength` and `connectionScore` fields help prioritize warm relationships. Regular interactions automatically increase these scores.
+  </Accordion>
+  
+  <Accordion title="Leverage buyer needs">
+    For buyer contacts, populate the `buyerNeeds` object to enable automatic property matching and targeted outreach.
+  </Accordion>
+</AccordionGroup>
+
+## Enrichment
+
+Relio can automatically enrich contact records with:
+- Social profile data
+- Job title and company information  
+- Location coordinates for mapping
+- Connection scores based on interactions
+
+The `lastEnrichedAt` timestamp tracks when enrichment last occurred.
+
+<Info>
+  Automatic enrichment runs periodically for contacts with sufficient identifying information (email or LinkedIn profile).
+</Info>

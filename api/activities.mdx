@@ -1,0 +1,204 @@
+---
+title: Activities API
+description: Manage activities and interactions in your Relio workspace
+---
+
+## activities.list()
+
+List activities for a specific record or workspace.
+
+<ParamField path="limit" type="number" default="50">
+  Maximum results
+</ParamField>
+
+<ParamField path="cursor" type="string">
+  Pagination cursor
+</ParamField>
+
+<ParamField path="contactId" type="string">
+  Filter by contact ID
+</ParamField>
+
+<ParamField path="propertyId" type="string">
+  Filter by property ID
+</ParamField>
+
+<ParamField path="companyId" type="string">
+  Filter by company ID
+</ParamField>
+
+<ParamField path="dealId" type="string">
+  Filter by deal ID
+</ParamField>
+
+<ParamField path="type" type="string">
+  Filter by activity type (note, email, call, meeting, task, etc.)
+</ParamField>
+
+<ResponseField name="items" type="Activity[]">
+  Array of activities with reactions and replies
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string | null">
+  Next page cursor
+</ResponseField>
+
+```typescript
+const activities = await trpc.activities.list.query({
+  contactId: "clx123...",
+  type: "meeting",
+  limit: 25
+});
+```
+
+## activities.create()
+
+Create a new activity.
+
+<ParamField path="type" type="string" required>
+  Activity type
+</ParamField>
+
+<ParamField path="title" type="string" required>
+  Activity title
+</ParamField>
+
+<ParamField path="body" type="string">
+  Activity body (HTML)
+</ParamField>
+
+<ParamField path="contactId" type="string">
+  Associated contact ID
+</ParamField>
+
+<ParamField path="propertyId" type="string">
+  Associated property ID
+</ParamField>
+
+<ParamField path="companyId" type="string">
+  Associated company ID
+</ParamField>
+
+<ParamField path="dealId" type="string">
+  Associated deal ID
+</ParamField>
+
+<ParamField path="dueAt" type="Date">
+  Due date (for tasks)
+</ParamField>
+
+<ParamField path="metadata" type="object">
+  Additional metadata
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Activity ID
+</ResponseField>
+
+<ResponseField name="createdAt" type="Date">
+  Creation timestamp
+</ResponseField>
+
+```typescript
+const activity = await trpc.activities.create.mutate({
+  type: "note",
+  title: "Follow-up call",
+  body: "<p>Discussed pricing options</p>",
+  contactId: "clx123..."
+});
+```
+
+## activities.update()
+
+Update an activity (edit body or resolve/unresolve).
+
+<ParamField path="id" type="string" required>
+  Activity ID
+</ParamField>
+
+<ParamField path="body" type="string">
+  Updated body content
+</ParamField>
+
+<ParamField path="resolved" type="boolean">
+  Mark as resolved/unresolved
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Activity ID
+</ResponseField>
+
+<ResponseField name="resolvedById" type="string | null">
+  User ID who resolved it
+</ResponseField>
+
+```typescript
+const updated = await trpc.activities.update.mutate({
+  id: "clx123...",
+  resolved: true
+});
+```
+
+## activities.delete()
+
+Delete an activity.
+
+<ParamField path="id" type="string" required>
+  Activity ID
+</ParamField>
+
+```typescript
+const deleted = await trpc.activities.delete.mutate({
+  id: "clx123..."
+});
+```
+
+## activities.createReply()
+
+Add a reply to an activity.
+
+<ParamField path="activityId" type="string" required>
+  Activity ID
+</ParamField>
+
+<ParamField path="body" type="string" required>
+  Reply body (HTML)
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Reply ID
+</ResponseField>
+
+<ResponseField name="createdAt" type="Date">
+  Creation timestamp
+</ResponseField>
+
+```typescript
+const reply = await trpc.activities.createReply.mutate({
+  activityId: "clx123...",
+  body: "<p>Great idea!</p>"
+});
+```
+
+## activities.toggleReaction()
+
+Add or remove an emoji reaction.
+
+<ParamField path="activityId" type="string" required>
+  Activity ID
+</ParamField>
+
+<ParamField path="emoji" type="string" required>
+  Emoji to toggle
+</ParamField>
+
+<ResponseField name="action" type="string">
+  "added" or "removed"
+</ResponseField>
+
+```typescript
+const result = await trpc.activities.toggleReaction.mutate({
+  activityId: "clx123...",
+  emoji: "👍"
+});
+```

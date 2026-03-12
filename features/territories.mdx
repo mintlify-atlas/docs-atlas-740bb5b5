@@ -1,0 +1,567 @@
+---
+title: Territories
+description: Organize your team's geographic coverage with territory management and assignment
+---
+
+Territories allow you to define geographic regions, assign team members, and track performance within each area.
+
+## Overview
+
+Territories use GeoJSON boundaries to define geographic areas. You can assign team members to territories, track coverage metrics, and identify gaps in your geographic reach.
+
+### Territory Structure
+
+From `territories.ts:24-51`, territories are defined as:
+
+```typescript
+interface Territory {
+  id: string;
+  workspaceId: string;
+  name: string;
+  description?: string;
+  color: string;              // hex color for map rendering (e.g. "#3b82f6")
+  boundary: GeoJSON;          // Polygon or MultiPolygon
+  boundarySource: "custom_draw" | "zip_code" | "city" | "county" | "state";
+  isExclusive: boolean;       // If true, only one member can be assigned
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+## Creating Territories
+
+Define a territory by providing a name, boundary, and optional settings.
+
+### Basic Territory
+
+```typescript
+const territory = await api.territories.create.mutate({
+  name: "Downtown San Francisco",
+  description: "Core downtown area including Financial District",
+  color: "#3b82f6",
+  boundary: {
+    type: "Polygon",
+    coordinates: [[
+      [-122.4194, 37.7749],  // [longitude, latitude]
+      [-122.4094, 37.7849],
+      [-122.3994, 37.7749],
+      [-122.4094, 37.7649],
+      [-122.4194, 37.7749]   // Close the polygon
+    ]]
+  },
+  boundarySource: "custom_draw",
+  isExclusive: true
+});
+```
+
+From `territories.ts:138-152`
+
+### GeoJSON Boundary Formats
+
+Territories support two GeoJSON geometry types:
+
+<Tabs>
+  <Tab title="Polygon">
+    ```json
+    {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [-122.4194, 37.7749],
+          [-122.4094, 37.7849],
+          [-122.3994, 37.7749],
+          [-122.4094, 37.7649],
+          [-122.4194, 37.7749]
+        ]
+      ]
+    }
+    ```
+    
+    A single continuous area. The first and last coordinate must be identical to close the polygon.
+  </Tab>
+  
+  <Tab title="MultiPolygon">
+    ```json
+    {
+      "type": "MultiPolygon",
+      "coordinates": [
+        [
+          [
+            [-122.4194, 37.7749],
+            [-122.4094, 37.7849],
+            [-122.3994, 37.7749],
+            [-122.4194, 37.7749]
+          ]
+        ],
+        [
+          [
+            [-122.5194, 37.8749],
+            [-122.5094, 37.8849],
+            [-122.4994, 37.8749],
+            [-122.5194, 37.8749]
+          ]
+        ]
+      ]
+    }
+    ```
+    
+    Multiple separate areas (e.g., non-contiguous neighborhoods).
+  </Tab>
+</Tabs>
+
+<Note>
+Coordinates use the WGS84 coordinate system (EPSG:4326): `[longitude, latitude]`. This is the standard used by GPS and web maps.
+</Note>
+
+### Boundary Sources
+
+Track how the boundary was created:
+
+- `custom_draw` - Hand-drawn by user
+- `zip_code` - Based on ZIP code boundary
+- `city` - City boundary
+- `county` - County boundary
+- `state` - State boundary
+
+## Assigning Team Members
+
+Assign one or more team members to a territory.
+
+### Exclusive Territories
+
+When `isExclusive: true`, only one member can be assigned at a time:
+
+```typescript
+await api.territories.assign.mutate({
+  territoryId: territory.id,
+  userIds: ["user_123"] // Only one user for exclusive territories
+});
+```
+
+From `territories.ts:214-294`
+
+### Shared Territories
+
+When `isExclusive: false`, multiple members can be assigned:
+
+```typescript
+await api.territories.assign.mutate({
+  territoryId: territory.id,
+  userIds: ["user_123", "user_456", "user_789"]
+});
+```
+
+<Warning>
+Assigning members to an exclusive territory replaces any existing assignment. For shared territories, new assignments are added without removing existing ones.
+</Warning>
+
+### Unassigning Members
+
+```typescript
+await api.territories.unassign.mutate({
+  territoryId: territory.id,
+  userId: "user_123"
+});
+```
+
+From `territories.ts:299-358`
+
+## Viewing Territories
+
+### List All Territories
+
+```typescript
+const territories = await api.territories.list.query();
+
+territories.forEach(t => {
+  console.log(t.name);
+  console.log(`Assigned to: ${t.assignees.map(a => a.userName).join(", ")}`);
+});
+```
+
+From `territories.ts:30-90`
+
+### Filter by Assigned Member
+
+```typescript
+const myTerritories = await api.territories.list.query({
+  memberId: currentMember.id
+});
+```
+
+### Get Single Territory
+
+```typescript
+const territory = await api.territories.getById.query(territoryId);
+
+console.log(territory.name);
+console.log(`Assignees: ${territory.assignees.length}`);
+territory.assignees.forEach(assignee => {
+  console.log(`- ${assignee.userName} (${assignee.userEmail})`);
+});
+```
+
+From `territories.ts:95-133`
+
+## Coverage Analytics
+
+Analyze how many properties, contacts, and deals fall within each territory.
+
+### Territory Coverage
+
+From `territories.ts:364-460`, get counts of records within territory boundaries:
+
+```typescript
+const coverage = await api.territories.coverage.query();
+
+coverage.forEach(t => {
+  console.log(`${t.territoryName}:`);
+  console.log(`  Properties: ${t.propertyCount}`);
+  console.log(`  Contacts: ${t.contactCount}`);
+  console.log(`  Deals: ${t.dealCount}`);
+});
+```
+
+### Specific Territories
+
+```typescript
+const coverage = await api.territories.coverage.query({
+  territoryIds: ["territory_1", "territory_2"]
+});
+```
+
+### How It Works
+
+Coverage uses PostGIS spatial queries:
+
+```sql
+-- From territories.ts:390-407
+SELECT COUNT(*)
+FROM properties
+WHERE workspace_id = ?
+  AND latitude IS NOT NULL
+  AND longitude IS NOT NULL
+  AND ST_Within(
+    ST_SetSRID(ST_MakePoint(longitude, latitude), 4326),
+    ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON(?), 4326))
+  )
+```
+
+<Info>
+Only properties, contacts, and deals with valid latitude/longitude coordinates are included in coverage metrics.
+</Info>
+
+## Coverage Gaps
+
+Identify properties that don't fall within any territory.
+
+```typescript
+const gaps = await api.territories.gaps.query({
+  limit: 100
+});
+
+gaps.forEach(property => {
+  console.log(`${property.address}, ${property.city}, ${property.state}`);
+  console.log(`  Coordinates: ${property.latitude}, ${property.longitude}`);
+});
+```
+
+From `territories.ts:465-544`
+
+### Use Cases
+
+- Find properties that need territory assignment
+- Identify areas where you should create new territories
+- Discover uncovered markets
+
+## Member Performance
+
+Track activity, deals, and performance within each territory per assigned member.
+
+```typescript
+const performance = await api.territories.memberPerformance.query();
+
+performance.forEach(t => {
+  console.log(`\n${t.territoryName}:`);
+  console.log(`  Properties: ${t.propertyCount}`);
+  
+  t.members.forEach(member => {
+    console.log(`\n  ${member.userName}:`);
+    console.log(`    Activities: ${member.activityCount}`);
+    console.log(`    Deals: ${member.dealCount}`);
+    console.log(`    Deal Value: $${member.dealValue.toLocaleString()}`);
+  });
+});
+```
+
+From `territories.ts:550-677`
+
+### Metrics Tracked
+
+<CardGroup cols={3}>
+  <Card title="Activity Count" icon="chart-line">
+    Number of activities (calls, notes, emails) by this member on properties in this territory
+  </Card>
+  
+  <Card title="Deal Count" icon="handshake">
+    Number of deals owned by this member on properties in this territory
+  </Card>
+  
+  <Card title="Deal Value" icon="dollar-sign">
+    Total value of deals owned by this member in this territory
+  </Card>
+</CardGroup>
+
+## Map Rendering
+
+Get territories as a GeoJSON FeatureCollection for map display.
+
+```typescript
+const geoJson = await api.territories.geoJson.query();
+
+// Returns:
+// {
+//   type: "FeatureCollection",
+//   features: [
+//     {
+//       type: "Feature",
+//       id: "territory_123",
+//       geometry: {
+//         type: "Polygon",
+//         coordinates: [...]
+//       },
+//       properties: {
+//         id: "territory_123",
+//         name: "Downtown SF",
+//         color: "#3b82f6",
+//         description: "...",
+//         isExclusive: true,
+//         assignees: ["Alice", "Bob"]
+//       }
+//     }
+//   ]
+// }
+```
+
+From `territories.ts:682-733`
+
+### Rendering with Mapbox GL JS
+
+```typescript
+import mapboxgl from "mapbox-gl";
+
+const geoJson = await api.territories.geoJson.query();
+
+map.addSource("territories", {
+  type: "geojson",
+  data: geoJson
+});
+
+map.addLayer({
+  id: "territories-fill",
+  type: "fill",
+  source: "territories",
+  paint: {
+    "fill-color": ["get", "color"],
+    "fill-opacity": 0.3
+  }
+});
+
+map.addLayer({
+  id: "territories-outline",
+  type: "line",
+  source: "territories",
+  paint: {
+    "line-color": ["get", "color"],
+    "line-width": 2
+  }
+});
+```
+
+## Managing Territories
+
+### Update Territory
+
+```typescript
+await api.territories.update.mutate({
+  id: territory.id,
+  name: "Downtown SF (Updated)",
+  description: "Expanded to include SoMa",
+  color: "#ef4444",
+  boundary: expandedBoundary
+});
+```
+
+From `territories.ts:157-181`
+
+### Delete Territory
+
+```typescript
+await api.territories.delete.mutate(territory.id);
+```
+
+<Warning>
+Deleting a territory cascades to all assignments. Assigned members will lose access to this territory. This cannot be undone.
+</Warning>
+
+From `territories.ts:186-207`
+
+## Real-World Examples
+
+### Example: ZIP Code Territory
+
+```typescript
+// Create territory from ZIP code boundary (fetched from external API)
+const zipBoundary = await fetchZipCodeBoundary("94102");
+
+await api.territories.create.mutate({
+  name: "94102 - Civic Center",
+  description: "San Francisco ZIP code 94102",
+  color: "#10b981",
+  boundary: zipBoundary,
+  boundarySource: "zip_code",
+  isExclusive: true
+});
+```
+
+### Example: County Territory
+
+```typescript
+// Large county territory with multiple assignees
+const countyBoundary = await fetchCountyBoundary("Santa Clara County");
+
+await api.territories.create.mutate({
+  name: "Santa Clara County",
+  description: "Entire Santa Clara County coverage area",
+  color: "#8b5cf6",
+  boundary: countyBoundary,
+  boundarySource: "county",
+  isExclusive: false  // Allow multiple agents
+});
+
+// Assign multiple team members
+await api.territories.assign.mutate({
+  territoryId: territory.id,
+  userIds: ["agent_1", "agent_2", "agent_3"]
+});
+```
+
+### Example: Custom Neighborhood
+
+```typescript
+// Hand-drawn neighborhood boundary
+await api.territories.create.mutate({
+  name: "Mission District",
+  description: "Mission District neighborhood in SF",
+  color: "#f59e0b",
+  boundary: {
+    type: "Polygon",
+    coordinates: [[
+      [-122.4194, 37.7549],
+      [-122.4094, 37.7649],
+      [-122.3994, 37.7549],
+      [-122.4094, 37.7449],
+      [-122.4194, 37.7549]
+    ]]
+  },
+  boundarySource: "custom_draw",
+  isExclusive: true
+});
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Choose appropriate exclusivity">
+    Use exclusive territories for individual agent accountability. Use shared territories for team coverage in high-volume areas.
+  </Accordion>
+
+  <Accordion title="Use meaningful colors">
+    Assign distinct colors to adjacent territories for clear visual separation on maps. Consider color-coding by team or region.
+  </Accordion>
+
+  <Accordion title="Regular coverage audits">
+    Periodically run the `gaps` query to identify uncovered areas and adjust territory boundaries as needed.
+  </Accordion>
+
+  <Accordion title="Track performance metrics">
+    Use `memberPerformance` to identify high-performing territories and optimize assignments.
+  </Accordion>
+
+  <Accordion title="Validate coordinates">
+    Ensure all properties and contacts have accurate latitude/longitude coordinates for proper territory assignment.
+  </Accordion>
+
+  <Accordion title="Document boundary sources">
+    Use the `boundarySource` field to track where boundaries came from. This helps with auditing and updates.
+  </Accordion>
+</AccordionGroup>
+
+## Technical Details
+
+### Spatial Queries
+
+Relio uses PostgreSQL with PostGIS extension for spatial operations:
+
+- **ST_GeomFromGeoJSON**: Convert GeoJSON to PostGIS geometry
+- **ST_MakeValid**: Ensure geometry is topologically valid
+- **ST_SetSRID**: Set spatial reference ID (4326 = WGS84)
+- **ST_Within**: Test if point is within polygon
+- **ST_Union**: Combine multiple territory boundaries
+
+From `territories.ts:391, 404, 421, 439, 507, 517`
+
+### Database Schema
+
+```sql
+-- territories table
+CREATE TABLE territories (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  color TEXT NOT NULL DEFAULT '#3b82f6',
+  boundary JSONB NOT NULL,  -- GeoJSON
+  boundary_source TEXT NOT NULL DEFAULT 'custom_draw',
+  is_exclusive BOOLEAN NOT NULL DEFAULT true,
+  created_by TEXT NOT NULL REFERENCES users(id),
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  
+  UNIQUE(workspace_id, name)
+);
+
+-- territory_assignments table
+CREATE TABLE territory_assignments (
+  id TEXT PRIMARY KEY,
+  territory_id TEXT NOT NULL REFERENCES territories(id) ON DELETE CASCADE,
+  member_id TEXT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  assigned_by TEXT NOT NULL REFERENCES users(id),
+  assigned_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  
+  UNIQUE(territory_id, member_id)
+);
+```
+
+### Assignment Rules
+
+From `territories.ts:258-291`:
+
+1. Verify territory exists and belongs to workspace
+2. Resolve user IDs to member IDs within workspace
+3. If exclusive, enforce single assignee limit
+4. If exclusive, delete existing assignments first
+5. Insert new assignments (ignore conflicts for shared)
+
+## Limitations & Considerations
+
+<Warning>
+**Territory limitations:**
+
+- Requires PostgreSQL with PostGIS extension
+- Only records with valid lat/long are included in coverage
+- Large territories with complex boundaries may be slow to query
+- Territory names must be unique within a workspace
+- Coordinate system is WGS84 (EPSG:4326) only
+</Warning>

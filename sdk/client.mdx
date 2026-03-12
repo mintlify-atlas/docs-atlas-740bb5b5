@@ -1,0 +1,158 @@
+---
+title: 'Client SDK'
+description: 'Client-side TypeScript/JavaScript SDK for Relio'
+---
+
+## Installation
+
+```bash
+npm install relio-cli
+```
+
+## Import
+
+```typescript
+import { createRelioClient } from "relio-cli/client";
+```
+
+## Creating a Client
+
+Use the `createRelioClient()` function to initialize a new Relio client instance.
+
+```typescript
+const relio = createRelioClient({
+  baseUrl: "http://localhost:3000",
+  apiKey: process.env.RELIO_API_KEY!,
+});
+```
+
+### Configuration Options
+
+<ParamField path="baseUrl" type="string" required>
+  The base URL of your Relio server instance
+</ParamField>
+
+<ParamField path="apiKey" type="string" required>
+  Your workspace API key for authentication
+</ParamField>
+
+## Basic Usage
+
+### Listing Contacts
+
+```typescript
+const page = await relio.contacts.list({ limit: 50 });
+```
+
+### Creating a Contact
+
+```typescript
+const contact = await relio.contacts.create({
+  firstName: "Ada",
+  lastName: "Lovelace",
+  email: [{ address: "ada@example.com", isPrimary: true }],
+});
+```
+
+### Updating a Contact
+
+```typescript
+// Using singular alias
+await relio.contact.update(contact.id, { 
+  notes: "Imported from partner CRM" 
+});
+```
+
+<Note>
+  Both plural (`contacts`) and singular (`contact`) aliases are available for resource methods.
+</Note>
+
+## Contact Sync Helpers
+
+The client SDK includes specialized helper methods for synchronizing contacts.
+
+### Bulk Import
+
+The `ingestContacts()` method handles chunked bulk imports automatically:
+
+```typescript
+const rows = [
+  {
+    firstName: "Ada",
+    lastName: "Lovelace",
+    email: [{ address: "ada@example.com", isPrimary: true }],
+  },
+  {
+    firstName: "Grace",
+    lastName: "Hopper",
+    email: [{ address: "grace@example.com", isPrimary: true }],
+  },
+  // ... more contacts
+];
+
+await relio.ingestContacts(rows);
+```
+
+<Info>
+  The `ingestContacts()` method automatically chunks large datasets for optimal performance.
+</Info>
+
+### Upsert by Primary Email
+
+The `upsertContactByPrimaryEmail()` method creates or updates a contact based on their primary email:
+
+```typescript
+await relio.upsertContactByPrimaryEmail("ada@example.com", {
+  firstName: "Ada",
+  lastName: "Lovelace",
+});
+```
+
+This method will:
+- Create a new contact if no contact exists with that primary email
+- Update the existing contact if one is found
+
+## Complete Example
+
+```typescript
+import { createRelioClient } from "relio-cli/client";
+
+// Initialize client
+const relio = createRelioClient({
+  baseUrl: "http://localhost:3000",
+  apiKey: process.env.RELIO_API_KEY!,
+});
+
+// Create a contact
+const contact = await relio.contacts.create({
+  firstName: "Ada",
+  lastName: "Lovelace",
+  email: [{ address: "ada@example.com", isPrimary: true }],
+});
+
+// Update the contact
+await relio.contact.update(contact.id, { 
+  notes: "Imported from partner CRM" 
+});
+
+// List contacts
+const page = await relio.contacts.list({ limit: 50 });
+console.log(`Found ${page.data.length} contacts`);
+
+// Upsert by email
+await relio.upsertContactByPrimaryEmail("grace@example.com", {
+  firstName: "Grace",
+  lastName: "Hopper",
+});
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Server SDK" icon="server" href="/sdk/server">
+    Learn about server-side features
+  </Card>
+  <Card title="Examples" icon="code" href="/sdk/examples">
+    View more code examples
+  </Card>
+</CardGroup>

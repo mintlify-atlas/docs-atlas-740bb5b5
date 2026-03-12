@@ -1,0 +1,268 @@
+---
+title: Contacts API
+description: Manage contacts in your Relio workspace
+---
+
+## contacts.list()
+
+List contacts with filtering, pagination, and sorting.
+
+<ParamField path="limit" type="number" default="50">
+  Maximum number of contacts to return
+</ParamField>
+
+<ParamField path="cursor" type="string">
+  Pagination cursor from previous response
+</ParamField>
+
+<ParamField path="offset" type="number">
+  Offset-based pagination (alternative to cursor)
+</ParamField>
+
+<ParamField path="search" type="string">
+  Search by first name or last name
+</ParamField>
+
+<ParamField path="firstName" type="string">
+  Filter by first name (partial match)
+</ParamField>
+
+<ParamField path="lastName" type="string">
+  Filter by last name (partial match)
+</ParamField>
+
+<ParamField path="title" type="string">
+  Filter by job title
+</ParamField>
+
+<ParamField path="role" type="string">
+  Filter by role
+</ParamField>
+
+<ParamField path="stage" type="string">
+  Filter by stage
+</ParamField>
+
+<ParamField path="source" type="string">
+  Filter by source
+</ParamField>
+
+<ParamField path="connectionStrength" type="string">
+  Filter by connection strength
+</ParamField>
+
+<ParamField path="ownerId" type="string">
+  Filter by owner user ID
+</ParamField>
+
+<ParamField path="listId" type="string">
+  Filter by list ID
+</ParamField>
+
+<ParamField path="tagIds" type="string[]">
+  Filter by tag IDs (must have all tags)
+</ParamField>
+
+<ParamField path="sort" type="object">
+  Sort configuration
+  - `field`: Field to sort by (firstName, lastName, role, stage, source, connectionStrength, createdAt)
+  - `direction`: Sort direction (asc or desc)
+</ParamField>
+
+<ResponseField name="items" type="Contact[]">
+  Array of contact objects
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string | null">
+  Cursor for next page of results
+</ResponseField>
+
+<ResponseField name="total" type="number">
+  Total count of matching contacts
+</ResponseField>
+
+```typescript
+const contacts = await trpc.contacts.list.query({
+  limit: 25,
+  search: "john",
+  role: "investor",
+  sort: { field: "lastName", direction: "asc" }
+});
+```
+
+## contacts.create()
+
+Create a new contact.
+
+<ParamField path="firstName" type="string">
+  First name
+</ParamField>
+
+<ParamField path="lastName" type="string">
+  Last name
+</ParamField>
+
+<ParamField path="email" type="object[]">
+  Email addresses
+  - `address`: Email address
+  - `label`: Label (work, personal, etc.)
+  - `isPrimary`: Whether this is the primary email
+</ParamField>
+
+<ParamField path="phone" type="object[]">
+  Phone numbers
+  - `number`: Phone number
+  - `label`: Label (mobile, work, etc.)
+  - `isPrimary`: Whether this is the primary phone
+</ParamField>
+
+<ParamField path="title" type="string">
+  Job title
+</ParamField>
+
+<ParamField path="description" type="string">
+  Description or bio
+</ParamField>
+
+<ParamField path="primaryLocation" type="string">
+  Primary location
+</ParamField>
+
+<ParamField path="linkedIn" type="string">
+  LinkedIn profile URL
+</ParamField>
+
+<ParamField path="twitter" type="string">
+  Twitter profile URL
+</ParamField>
+
+<ParamField path="role" type="string">
+  Contact role
+</ParamField>
+
+<ParamField path="stage" type="string">
+  Contact stage
+</ParamField>
+
+<ParamField path="source" type="string">
+  Contact source
+</ParamField>
+
+<ParamField path="ownerId" type="string">
+  Owner user ID
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Contact ID
+</ResponseField>
+
+<ResponseField name="firstName" type="string">
+  First name
+</ResponseField>
+
+<ResponseField name="lastName" type="string">
+  Last name
+</ResponseField>
+
+<ResponseField name="email" type="object[] | null">
+  Email addresses
+</ResponseField>
+
+<ResponseField name="createdAt" type="Date">
+  Creation timestamp
+</ResponseField>
+
+```typescript
+const contact = await trpc.contacts.create.mutate({
+  firstName: "John",
+  lastName: "Doe",
+  email: [{ address: "john@example.com", isPrimary: true }],
+  title: "CEO",
+  role: "investor"
+});
+```
+
+## contacts.update()
+
+Update an existing contact.
+
+<ParamField path="id" type="string" required>
+  Contact ID
+</ParamField>
+
+<ParamField path="firstName" type="string">
+  First name
+</ParamField>
+
+<ParamField path="lastName" type="string">
+  Last name
+</ParamField>
+
+<ParamField path="email" type="object[]">
+  Email addresses
+</ParamField>
+
+<ParamField path="phone" type="object[]">
+  Phone numbers
+</ParamField>
+
+<ParamField path="title" type="string">
+  Job title
+</ParamField>
+
+<ParamField path="description" type="string">
+  Description
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Contact ID
+</ResponseField>
+
+<ResponseField name="updatedAt" type="Date">
+  Update timestamp
+</ResponseField>
+
+```typescript
+const updated = await trpc.contacts.update.mutate({
+  id: "clx123...",
+  title: "CTO",
+  stage: "active"
+});
+```
+
+## contacts.delete()
+
+Delete a contact. Requires admin role.
+
+<ParamField path="id" type="string" required>
+  Contact ID to delete
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Deleted contact ID
+</ResponseField>
+
+```typescript
+const deleted = await trpc.contacts.delete.mutate("clx123...");
+```
+
+## contacts.enrich()
+
+Enrich a contact with data from People Data Labs.
+
+<ParamField path="id" type="string" required>
+  Contact ID to enrich
+</ParamField>
+
+<ResponseField name="contact" type="Contact">
+  Enriched contact object
+</ResponseField>
+
+<ResponseField name="enrichedFields" type="string[]">
+  List of fields that were enriched
+</ResponseField>
+
+```typescript
+const enriched = await trpc.contacts.enrich.mutate({ id: "clx123..." });
+console.log(enriched.enrichedFields); // ["title", "linkedIn", "description"]
+```

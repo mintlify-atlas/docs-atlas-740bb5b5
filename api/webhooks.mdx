@@ -1,0 +1,298 @@
+---
+title: Webhooks
+description: Subscribe to real-time events from your workspace
+---
+
+## Overview
+
+Webhooks allow you to receive real-time notifications when events occur in your workspace. When an event fires, Relio sends an HTTP POST request to your configured endpoint with event details.
+
+## Available Events
+
+Relio supports webhooks for the following events:
+
+| Event | Description |
+|-------|-------------|
+| `contact.created` | Fired when a new contact is created |
+| `contact.updated` | Fired when a contact is updated |
+| `contact.deleted` | Fired when a contact is deleted |
+| `property.created` | Fired when a new property is created |
+| `property.updated` | Fired when a property is updated |
+| `property.deleted` | Fired when a property is deleted |
+| `company.created` | Fired when a new company is created |
+| `company.updated` | Fired when a company is updated |
+| `company.deleted` | Fired when a company is deleted |
+| `deal.created` | Fired when a new deal is created |
+| `deal.updated` | Fired when a deal is updated |
+| `deal.deleted` | Fired when a deal is deleted |
+| `task.created` | Fired when a new task is created |
+| `task.updated` | Fired when a task is updated |
+| `task.deleted` | Fired when a task is deleted |
+| `list.created` | Fired when a new list is created |
+| `list.updated` | Fired when a list is updated |
+| `list.deleted` | Fired when a list is deleted |
+| `comment.created` | Fired when a new comment is created |
+| `comment.updated` | Fired when a comment is updated |
+| `comment.deleted` | Fired when a comment is deleted |
+
+## Get Available Events
+
+Retrieve the list of all supported webhook events.
+
+```typescript
+const events = await trpc.workspaceWebhooks.events.query();
+// Returns: ["contact.created", "contact.updated", ...]
+```
+
+### Response
+
+Returns an array of event type strings.
+
+## List Webhooks
+
+Retrieve all webhooks configured for your workspace.
+
+```typescript
+const webhooks = await trpc.workspaceWebhooks.list.query();
+```
+
+### Response
+
+<ResponseField name="id" type="string" required>
+  Webhook ID (CUID2)
+</ResponseField>
+
+<ResponseField name="targetUrl" type="string" required>
+  The URL where webhook payloads will be sent
+</ResponseField>
+
+<ResponseField name="events" type="string[]" required>
+  Array of subscribed event types
+</ResponseField>
+
+<ResponseField name="isActive" type="boolean" required>
+  Whether the webhook is currently active
+</ResponseField>
+
+<ResponseField name="lastTriggeredAt" type="timestamp" required>
+  When this webhook was last triggered (null if never triggered)
+</ResponseField>
+
+<ResponseField name="createdAt" type="timestamp" required>
+  Timestamp when the webhook was created
+</ResponseField>
+
+<ResponseField name="updatedAt" type="timestamp" required>
+  Timestamp when the webhook was last updated
+</ResponseField>
+
+<ResponseField name="createdBy" type="string" required>
+  User ID who created this webhook
+</ResponseField>
+
+<ResponseField name="createdByName" type="string">
+  Name of the user who created this webhook
+</ResponseField>
+
+<ResponseField name="createdByEmail" type="string">
+  Email of the user who created this webhook
+</ResponseField>
+
+<ResponseField name="createdByLabel" type="string" required>
+  Display label for the creator (name, email, or "Unknown user")
+</ResponseField>
+
+## Create Webhook
+
+Create a new webhook subscription.
+
+```typescript
+const result = await trpc.workspaceWebhooks.create.mutate({
+  targetUrl: "https://api.example.com/webhooks/relio",
+  events: ["contact.created", "contact.updated", "property.created"]
+});
+
+console.log(result.signingSecret); // Save this secret!
+```
+
+<Warning>
+  The `signingSecret` is only returned once during webhook creation. Store it securely to verify webhook signatures.
+</Warning>
+
+### Parameters
+
+<ParamField body="targetUrl" type="string" required>
+  The HTTPS URL where webhook events will be sent. Must be a valid URL (max 2048 characters).
+</ParamField>
+
+<ParamField body="events" type="string[]" required>
+  Array of event types to subscribe to. Must contain at least one event.
+</ParamField>
+
+### Response
+
+<ResponseField name="signingSecret" type="string" required>
+  The webhook signing secret (format: `whsec_...`). Use this to verify webhook signatures. **Only returned once!**
+</ResponseField>
+
+<ResponseField name="webhook" type="object" required>
+  The created webhook object with all fields from the list response
+</ResponseField>
+
+## Update Webhook
+
+Update an existing webhook's configuration.
+
+```typescript
+await trpc.workspaceWebhooks.update.mutate({
+  webhookId: "cm1abc123xyz",
+  targetUrl: "https://api.example.com/webhooks/relio-v2",
+  events: ["contact.created", "property.created"],
+  isActive: false
+});
+```
+
+### Parameters
+
+<ParamField body="webhookId" type="string" required>
+  The ID of the webhook to update
+</ParamField>
+
+<ParamField body="targetUrl" type="string">
+  New target URL (max 2048 characters)
+</ParamField>
+
+<ParamField body="events" type="string[]">
+  New array of event types. Must contain at least one event if provided.
+</ParamField>
+
+<ParamField body="isActive" type="boolean">
+  Enable or disable the webhook
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean" required>
+  Returns `true` if the update succeeded
+</ResponseField>
+
+## Delete Webhook
+
+Delete a webhook subscription.
+
+```typescript
+await trpc.workspaceWebhooks.delete.mutate({
+  webhookId: "cm1abc123xyz"
+});
+```
+
+### Parameters
+
+<ParamField body="webhookId" type="string" required>
+  The ID of the webhook to delete
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean" required>
+  Returns `true` if the deletion succeeded
+</ResponseField>
+
+## Webhook Signatures
+
+All webhook requests include a signature in the `X-Webhook-Signature` header. You should verify this signature to ensure the request came from Relio.
+
+### Signature Format
+
+The signing secret is generated in the format `whsec_` followed by 48 hexadecimal characters (24 random bytes).
+
+### Verifying Signatures
+
+To verify a webhook signature:
+
+1. Extract the signature from the `X-Webhook-Signature` header
+2. Compute an HMAC-SHA256 hash of the raw request body using your signing secret
+3. Compare the computed hash with the provided signature
+
+```typescript
+import crypto from 'crypto';
+
+function verifyWebhookSignature(
+  payload: string,
+  signature: string,
+  secret: string
+): boolean {
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(payload)
+    .digest('hex');
+  
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+
+// Usage in your webhook handler
+app.post('/webhooks/relio', (req, res) => {
+  const signature = req.headers['x-webhook-signature'];
+  const payload = JSON.stringify(req.body);
+  
+  if (!verifyWebhookSignature(payload, signature, process.env.RELIO_WEBHOOK_SECRET)) {
+    return res.status(401).send('Invalid signature');
+  }
+  
+  // Process the webhook...
+  res.status(200).send('OK');
+});
+```
+
+## Webhook Payload
+
+Webhook payloads are sent as JSON in the request body:
+
+```json
+{
+  "event": "contact.created",
+  "workspaceId": "org_abc123",
+  "timestamp": "2026-03-12T10:30:00.000Z",
+  "data": {
+    "id": "cm1contact123",
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": [{"address": "john@example.com", "isPrimary": true}],
+    "createdAt": "2026-03-12T10:30:00.000Z"
+  }
+}
+```
+
+## Retry Logic
+
+When a webhook delivery fails, Relio will retry the request:
+
+- Retries use exponential backoff
+- Maximum of 3 retry attempts
+- A webhook is considered failed if your server:
+  - Returns a non-2xx status code
+  - Times out after 10 seconds
+  - Returns a network error
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always verify signatures">
+    Never trust webhook data without verifying the signature. This prevents malicious actors from sending fake events to your endpoint.
+  </Accordion>
+  
+  <Accordion title="Respond quickly">
+    Return a 200 status code as soon as you receive the webhook. Process the event asynchronously to avoid timeouts.
+  </Accordion>
+  
+  <Accordion title="Handle duplicates">
+    Due to retry logic, your endpoint may receive the same event multiple times. Use idempotency keys to handle duplicates gracefully.
+  </Accordion>
+  
+  <Accordion title="Use HTTPS">
+    Webhook URLs must use HTTPS to ensure secure transmission of data.
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,609 @@
+---
+title: Installation
+description: Install Relio on web, mobile (iOS/Android), and desktop (Windows/Mac/Linux) platforms.
+---
+
+# Installation
+
+Relio is available on multiple platforms to fit your workflow. Choose the installation method that works best for you.
+
+## Platform Overview
+
+Relio is built as a **multi-platform application** with a shared codebase:
+
+- **Web App** - Next.js full-stack application (no installation required)
+- **Mobile App** - React Native app built with Expo for iOS and Android
+- **Desktop App** - Native desktop application built with Tauri for Windows, Mac, and Linux
+
+All platforms share the same backend API (Hono + tRPC), database (PostgreSQL + Drizzle), and authentication system (Better Auth), ensuring a consistent experience across devices.
+
+<Tabs>
+  <Tab title="Web App">
+    ## Web Application
+    
+    The Relio web application requires **no installation** - simply visit the URL in your browser.
+    
+    ### Accessing the Web App
+    
+    #### Hosted Version
+    
+    Visit the hosted Relio instance:
+    ```
+    https://app.relio.com
+    ```
+    
+    **Supported Browsers:**
+    - Chrome/Edge 90+
+    - Firefox 88+
+    - Safari 14+
+    
+    <Info>
+    The web app is built with Next.js 16 using React 19 and runs on Node.js. It's optimized for desktop browsers but also works on mobile browsers.
+    </Info>
+    
+    #### Self-Hosted Deployment
+    
+    To run Relio on your own infrastructure:
+    
+    <Steps>
+      <Step title="Clone Repository">
+        ```bash
+        git clone https://github.com/yourusername/relio.git
+        cd relio
+        ```
+      </Step>
+      
+      <Step title="Install Dependencies">
+        Relio uses pnpm for package management:
+        ```bash
+        pnpm install
+        ```
+      </Step>
+      
+      <Step title="Configure Environment">
+        Copy the example environment file and configure your settings:
+        ```bash
+        cp .env.example .env
+        ```
+        
+        Required environment variables:
+        ```bash
+        # Database
+        DATABASE_URL="postgresql://user:password@localhost:5432/relio"
+        
+        # Better Auth
+        BETTER_AUTH_SECRET="your-secret-key-min-32-chars"
+        BETTER_AUTH_URL="http://localhost:3000/api/auth"
+        
+        # Optional: Supabase Realtime (for collaboration features)
+        NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+        NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
+        SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+        ```
+        
+        <Tip>
+        Supabase Realtime is optional. Without it, real-time collaboration features will gracefully degrade to polling.
+        </Tip>
+      </Step>
+      
+      <Step title="Set Up Database">
+        Create your PostgreSQL database and apply the schema:
+        ```bash
+        # Push schema to database
+        pnpm run db:push
+        
+        # Or run migrations
+        pnpm run db:migrate
+        ```
+        
+        <Info>
+        Relio uses Drizzle ORM with PostgreSQL. The schema includes PostGIS extensions for geospatial features.
+        </Info>
+      </Step>
+      
+      <Step title="Run Development Server">
+        Start all services in development mode:
+        ```bash
+        pnpm run dev
+        ```
+        
+        This starts:
+        - **Web app** at http://localhost:3001
+        - **API server** at http://localhost:3000
+        - **Native/Expo** dev server (if enabled)
+        
+        Or run individually:
+        ```bash
+        pnpm run dev:web      # Web app only
+        pnpm run dev:server   # API server only
+        ```
+      </Step>
+      
+      <Step title="Build for Production">
+        Create an optimized production build:
+        ```bash
+        pnpm run build
+        pnpm run start
+        ```
+        
+        Deploy to your hosting provider of choice (Vercel, Railway, self-hosted).
+      </Step>
+    </Steps>
+    
+    ### Tech Stack (Web)
+    
+    - **Framework**: Next.js 16 with App Router
+    - **UI**: React 19, TailwindCSS 4, shadcn/ui components
+    - **State**: Zustand, Valtio, TanStack Query
+    - **Forms**: React Hook Form + Zod validation
+    - **Maps**: Mapbox GL with react-map-gl
+    - **Rich Text**: TipTap (ProseMirror)
+    - **Real-time**: Supabase Realtime (optional)
+  </Tab>
+  
+  <Tab title="Mobile App">
+    ## Mobile Application (iOS & Android)
+    
+    The Relio mobile app is built with **React Native** and **Expo**, providing native iOS and Android experiences.
+    
+    ### Download from App Stores
+    
+    #### iOS (App Store)
+    
+    1. Open the **App Store** on your iPhone or iPad
+    2. Search for **"Relio CRM"**
+    3. Tap **Get** to download and install
+    4. Open the app and sign in with your Relio account
+    
+    **Requirements:**
+    - iOS 13.0 or later
+    - iPhone, iPad, or iPod touch
+    
+    #### Android (Google Play)
+    
+    1. Open **Google Play Store** on your Android device
+    2. Search for **"Relio CRM"**
+    3. Tap **Install** to download
+    4. Open the app and sign in
+    
+    **Requirements:**
+    - Android 6.0 (Marshmallow) or later
+    - ARM or x86 device
+    
+    <Info>
+    The mobile app uses the same authentication system (Better Auth) as the web app. Sign in with your existing credentials.
+    </Info>
+    
+    ### Development Setup
+    
+    To run the mobile app in development mode:
+    
+    <Steps>
+      <Step title="Install Expo CLI">
+        ```bash
+        npm install -g expo-cli
+        ```
+      </Step>
+      
+      <Step title="Navigate to Native App">
+        ```bash
+        cd apps/native
+        pnpm install
+        ```
+      </Step>
+      
+      <Step title="Configure Environment">
+        Create `apps/native/.env` with your API endpoint:
+        ```bash
+        EXPO_PUBLIC_API_URL="http://localhost:3000"
+        EXPO_PUBLIC_AUTH_URL="http://localhost:3000/api/auth"
+        ```
+        
+        <Warning>
+        For local development on a physical device, use your computer's local IP address instead of `localhost`.
+        </Warning>
+      </Step>
+      
+      <Step title="Start Expo Dev Server">
+        ```bash
+        pnpm run dev:native
+        # or from root:
+        # pnpm run dev:native
+        ```
+      </Step>
+      
+      <Step title="Run on Device or Simulator">
+        **Option 1: Expo Go App**
+        1. Install **Expo Go** from App Store/Google Play
+        2. Scan the QR code from the terminal
+        3. App will load on your device
+        
+        **Option 2: iOS Simulator**
+        ```bash
+        # Press 'i' in the Expo terminal
+        # Or:
+        expo run:ios
+        ```
+        
+        **Option 3: Android Emulator**
+        ```bash
+        # Press 'a' in the Expo terminal
+        # Or:
+        expo run:android
+        ```
+      </Step>
+    </Steps>
+    
+    ### Building for Production
+    
+    Build standalone apps for distribution:
+    
+    ```bash
+    # iOS (requires Apple Developer account)
+    eas build --platform ios
+    
+    # Android
+    eas build --platform android
+    ```
+    
+    <Tip>
+    Expo Application Services (EAS) handles the build process in the cloud. Configure `eas.json` for your build settings.
+    </Tip>
+    
+    ### Tech Stack (Mobile)
+    
+    - **Framework**: React Native with Expo SDK
+    - **Navigation**: Expo Router (file-based routing)
+    - **UI**: Custom components + Expo design system
+    - **State**: Same as web (Zustand, TanStack Query)
+    - **Auth**: Better Auth with Expo adapter (`@better-auth/expo`)
+    - **Maps**: react-native-maps (Google Maps/Apple Maps)
+  </Tab>
+  
+  <Tab title="Desktop App">
+    ## Desktop Application
+    
+    The Relio desktop app is built with **Tauri**, providing native Windows, macOS, and Linux applications with a tiny footprint.
+    
+    ### Download Desktop App
+    
+    #### Windows
+    
+    1. Download the installer: `Relio-Setup.exe`
+    2. Run the installer
+    3. Launch Relio from Start Menu or Desktop shortcut
+    
+    **Requirements:**
+    - Windows 10 (1803+) or Windows 11
+    - WebView2 runtime (automatically installed if missing)
+    
+    #### macOS
+    
+    1. Download: `Relio.dmg`
+    2. Open the DMG and drag Relio to Applications
+    3. Launch from Applications folder
+    
+    **Requirements:**
+    - macOS 10.15 (Catalina) or later
+    - Apple Silicon (M1/M2) or Intel processor
+    
+    <Info>
+    On first launch, you may need to right-click → Open to bypass Gatekeeper if the app isn't notarized.
+    </Info>
+    
+    #### Linux
+    
+    Download the appropriate package for your distribution:
+    
+    **Debian/Ubuntu (.deb):**
+    ```bash
+    sudo dpkg -i relio_1.0.0_amd64.deb
+    ```
+    
+    **Fedora/RHEL (.rpm):**
+    ```bash
+    sudo rpm -i relio-1.0.0.x86_64.rpm
+    ```
+    
+    **AppImage (universal):**
+    ```bash
+    chmod +x Relio.AppImage
+    ./Relio.AppImage
+    ```
+    
+    **Requirements:**
+    - Modern Linux distribution with GTK 3.24+
+    - WebKitGTK or WebView2 (depending on build)
+    
+    ### Development Setup
+    
+    To build and run the desktop app locally:
+    
+    <Steps>
+      <Step title="Install Rust">
+        Tauri requires Rust toolchain:
+        ```bash
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+        ```
+        
+        Verify installation:
+        ```bash
+        rustc --version
+        ```
+      </Step>
+      
+      <Step title="Install System Dependencies">
+        **macOS:**
+        ```bash
+        # No additional dependencies needed
+        ```
+        
+        **Linux (Ubuntu/Debian):**
+        ```bash
+        sudo apt update
+        sudo apt install libwebkit2gtk-4.1-dev \
+          build-essential \
+          curl \
+          wget \
+          file \
+          libssl-dev \
+          libayatana-appindicator3-dev \
+          librsvg2-dev
+        ```
+        
+        **Windows:**
+        - Install Visual Studio C++ Build Tools
+        - WebView2 is included with Windows 11, or install separately
+      </Step>
+      
+      <Step title="Navigate to Web App">
+        The Tauri app wraps the Next.js web app:
+        ```bash
+        cd apps/web
+        ```
+      </Step>
+      
+      <Step title="Run in Development">
+        ```bash
+        pnpm run desktop:dev
+        ```
+        
+        This:
+        1. Starts the Next.js dev server
+        2. Launches Tauri with hot reload
+        3. Opens the desktop app window
+      </Step>
+      
+      <Step title="Build for Production">
+        Create optimized binaries:
+        ```bash
+        pnpm run desktop:build
+        ```
+        
+        Output location:
+        - **Windows**: `apps/web/src-tauri/target/release/bundle/msi/`
+        - **macOS**: `apps/web/src-tauri/target/release/bundle/dmg/`
+        - **Linux**: `apps/web/src-tauri/target/release/bundle/deb/` (and other formats)
+      </Step>
+    </Steps>
+    
+    ### Tauri Configuration
+    
+    The desktop app configuration is in `apps/web/src-tauri/tauri.conf.json`:
+    
+    ```json
+    {
+      "productName": "Relio",
+      "version": "1.0.0",
+      "identifier": "com.relio.app",
+      "build": {
+        "beforeDevCommand": "pnpm run dev",
+        "beforeBuildCommand": "pnpm run build",
+        "devUrl": "http://localhost:3001",
+        "frontendDist": "../out"
+      }
+    }
+    ```
+    
+    ### Tech Stack (Desktop)
+    
+    - **Framework**: Tauri 2.x
+    - **Frontend**: Same Next.js web app (shared codebase)
+    - **WebView**: WebView2 (Windows), WebKit (macOS/Linux)
+    - **IPC**: Tauri commands for native features (file system, notifications, etc.)
+    - **Auto-updates**: Tauri updater for seamless updates
+    
+    <Tip>
+    The desktop app is essentially the web app packaged as a native application. It shares ~95% of the code with the web version.
+    </Tip>
+  </Tab>
+</Tabs>
+
+## Authentication Across Platforms
+
+All Relio platforms use **Better Auth** for secure, consistent authentication:
+
+### Better Auth Features
+
+- **Email/Password** authentication with email verification
+- **Session management** with secure token storage
+- **Organization/Workspace** support built-in
+- **Rate limiting** with database-backed counters
+- **Multi-device** sessions with device tracking
+
+### Platform-Specific Auth
+
+<CardGroup cols={3}>
+  <Card title="Web" icon="browser">
+    Standard cookie-based sessions with HTTP-only tokens
+  </Card>
+  <Card title="Mobile" icon="mobile">
+    Uses `@better-auth/expo` adapter with secure storage
+  </Card>
+  <Card title="Desktop" icon="desktop">
+    Same as web (cookies) within Tauri's webview
+  </Card>
+</CardGroup>
+
+### Session Sync
+
+Signing in on one platform automatically syncs your session:
+- Active workspace is stored in session (`activeOrganizationId`)
+- All platforms share the same database session table
+- Real-time updates across devices via Supabase Realtime
+
+## Database Setup
+
+Relio requires **PostgreSQL** with the **PostGIS** extension for geospatial features.
+
+### Local PostgreSQL
+
+```bash
+# Install PostgreSQL (example for macOS)
+brew install postgresql postgis
+brew services start postgresql
+
+# Create database
+createb relio
+psql relio -c "CREATE EXTENSION postgis;"
+```
+
+### Hosted Database Options
+
+<CardGroup cols={2}>
+  <Card title="Supabase" icon="database">
+    Free PostgreSQL with PostGIS included
+    ```
+    https://supabase.com
+    ```
+  </Card>
+  <Card title="Neon" icon="server">
+    Serverless Postgres with instant branching
+    ```
+    https://neon.tech
+    ```
+  </Card>
+  <Card title="Railway" icon="train">
+    PostgreSQL + PostGIS with simple deployment
+    ```
+    https://railway.app
+    ```
+  </Card>
+  <Card title="AWS RDS" icon="aws">
+    Production-grade managed PostgreSQL
+    ```
+    https://aws.amazon.com/rds/
+    ```
+  </Card>
+</CardGroup>
+
+### Schema Management
+
+Relio uses **Drizzle ORM** for type-safe database access:
+
+```bash
+# Push schema (development)
+pnpm run db:push
+
+# Generate migrations
+pnpm run db:generate
+
+# Run migrations (production)
+pnpm run db:migrate
+
+# Open Drizzle Studio (GUI)
+pnpm run db:studio
+```
+
+<Info>
+The database schema is defined in `packages/db/src/schema/`. Migrations are in `packages/db/src/migrations/`.
+</Info>
+
+## Environment Variables Reference
+
+### Required Variables
+
+| Variable | Description | Example |
+|----------|-------------|----------|
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host:5432/db` |
+| `BETTER_AUTH_SECRET` | Auth encryption key (min 32 chars) | `openssl rand -base64 32` |
+| `BETTER_AUTH_URL` | Auth API endpoint | `https://app.relio.com/api/auth` |
+
+### Optional Variables
+
+| Variable | Description | Default |
+|----------|-------------|----------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | None (optional) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key | None (optional) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-side Supabase key | None (optional) |
+| `MAPBOX_ACCESS_TOKEN` | Mapbox GL token for maps | Required for maps |
+| `OPENAI_API_KEY` | OpenAI key for AI features | Optional |
+
+<Warning>
+Never commit `.env` files to version control. Use `.env.example` as a template and keep secrets secure.
+</Warning>
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Database connection errors">
+    **Error**: `ECONNREFUSED` or `connection refused`
+    
+    **Solution**:
+    - Verify PostgreSQL is running: `psql -U postgres`
+    - Check `DATABASE_URL` format
+    - Ensure database exists: `createdb relio`
+    - Check firewall/network settings for hosted databases
+  </Accordion>
+  
+  <Accordion title="PostGIS extension missing">
+    **Error**: `type "geometry" does not exist`
+    
+    **Solution**:
+    ```sql
+    CREATE EXTENSION IF NOT EXISTS postgis;
+    ```
+    
+    For hosted databases, PostGIS may need to be enabled in the dashboard.
+  </Accordion>
+  
+  <Accordion title="Build errors on desktop app">
+    **Error**: Rust compilation failures
+    
+    **Solution**:
+    - Update Rust: `rustup update`
+    - Install system dependencies (see platform-specific guide above)
+    - Clear cache: `cargo clean`
+  </Accordion>
+  
+  <Accordion title="Mobile app won't connect to local API">
+    **Error**: Network request failed
+    
+    **Solution**:
+    - Use computer's local IP instead of `localhost`
+    - Ensure device is on same WiFi network
+    - Check firewall allows port 3000
+    - Example: `EXPO_PUBLIC_API_URL="http://192.168.1.100:3000"`
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+Now that you have Relio installed:
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Create your first workspace, contacts, and deals
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Explore the tRPC API for custom integrations
+  </Card>
+  <Card title="CLI & SDK" icon="hammer" href="/cli/overview">
+    Automate workflows with the Relio CLI and SDK
+  </Card>
+  <Card title="Workspace Management" icon="server" href="/workspace/overview">
+    Learn about managing your Relio workspace
+  </Card>
+</CardGroup>

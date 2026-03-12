@@ -1,0 +1,386 @@
+---
+title: Task Management
+description: Create, assign, and track tasks with priorities, due dates, and kanban workflows
+---
+
+## Overview
+
+Tasks help you and your team stay organized with actionable to-dos linked to contacts, properties, companies, and deals. Use kanban boards, priorities, and due dates to manage your workload.
+
+<CardGroup cols={2}>
+  <Card title="Task Status" icon="square-check">
+    Track tasks through todo, in_progress, done, and cancelled states
+  </Card>
+  <Card title="Priorities" icon="flag">
+    Set urgency levels from urgent to low priority
+  </Card>
+  <Card title="Multi-Assign" icon="users">
+    Assign tasks to multiple team members
+  </Card>
+  <Card title="Kanban View" icon="table-columns">
+    Visualize tasks in customizable kanban boards
+  </Card>
+</CardGroup>
+
+## Creating Tasks
+
+<Steps>
+  <Step title="Add task title">
+    Required fields:
+    - `title` - Task name or description
+    - `createdById` - User creating the task
+    
+    Optional:
+    - `description` - Detailed task notes
+  </Step>
+  
+  <Step title="Set status and priority">
+    Organize the task:
+    - `status` - `todo`, `in_progress`, `done`, `cancelled` (default: `todo`)
+    - `priority` - `urgent`, `high`, `medium`, `low`, `no_priority` (default: `no_priority`)
+  </Step>
+  
+  <Step title="Add due date">
+    Set deadline:
+    - `dueDate` - Target completion date
+  </Step>
+  
+  <Step title="Link to records">
+    Associate with related records:
+    - `contactId` - Related contact
+    - `propertyId` - Related property
+    - `companyId` - Related company
+    - `dealId` - Related deal
+    
+    <Note>
+      You can link a task to multiple record types. Use `taskLinkedRecords` for additional multi-record linking.
+    </Note>
+  </Step>
+  
+  <Step title="Assign team members">
+    Use the `taskAssignees` table to assign tasks to one or more users.
+  </Step>
+</Steps>
+
+## Task Fields Reference
+
+### Core Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | text | Task title (required) |
+| `description` | text | Detailed task notes |
+| `status` | enum | Current status (required) |
+| `statusEnteredAt` | timestamp | When task entered current status |
+| `priority` | enum | Task priority (required) |
+| `dueDate` | timestamp | Due date/time |
+| `position` | integer | Sort order within status column |
+| `createdById` | text | User who created the task |
+
+### Status Values
+
+| Status | Description |
+|--------|-------------|
+| `todo` | Not started (default) |
+| `in_progress` | Currently being worked on |
+| `done` | Completed |
+| `cancelled` | Cancelled/abandoned |
+
+<Info>
+  The `statusEnteredAt` field automatically updates when you change the task status, enabling time-in-status tracking.
+</Info>
+
+### Priority Values
+
+| Priority | Use Case |
+|----------|----------|
+| `urgent` | Immediate attention required |
+| `high` | Important, address soon |
+| `medium` | Standard priority |
+| `low` | Nice to have |
+| `no_priority` | No specific priority (default) |
+
+### Record Associations
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `contactId` | text | Linked contact (optional) |
+| `propertyId` | text | Linked property (optional) |
+| `companyId` | text | Linked company (optional) |
+| `dealId` | text | Linked deal (optional) |
+
+## Task Assignees
+
+Tasks support multiple assignees via the **taskAssignees** junction table:
+
+```typescript
+{
+  taskId: "task_123",
+  userId: "user_abc",
+  assignedAt: "2024-03-12T10:00:00Z"
+}
+```
+
+Features:
+- Assign tasks to entire teams
+- Track who's assigned to what
+- Query "my tasks" efficiently
+- Automatic cleanup on task/user deletion
+
+<Tip>
+  Use multi-assignee tasks for collaborative work that requires multiple team members.
+</Tip>
+
+## Task Linked Records
+
+For tasks related to multiple records of the same type (e.g., a task for 5 properties), use **taskLinkedRecords**:
+
+```typescript
+{
+  taskId: "task_456",
+  recordId: "property_123",
+  recordType: "property",
+  createdAt: "2024-03-12T10:00:00Z"
+}
+```
+
+Record types: `contact`, `property`, `company`, `deal`
+
+<Note>
+  Use the direct foreign keys (`contactId`, `propertyId`, etc.) for single associations. Use `taskLinkedRecords` for multiple records of any type.
+</Note>
+
+## Kanban Boards
+
+Visualize tasks by status in kanban columns:
+
+```
+┌─────────────┬──────────────┬─────────┬───────────┐
+│    TODO     │ IN PROGRESS  │  DONE   │ CANCELLED │
+├─────────────┼──────────────┼─────────┼───────────┤
+│ Task 1      │ Task 4       │ Task 7  │ Task 9    │
+│ Task 2      │ Task 5       │ Task 8  │           │
+│ Task 3      │ Task 6       │         │           │
+└─────────────┴──────────────┴─────────┴───────────┘
+```
+
+Drag tasks between columns to update their status.
+
+## Column Preferences
+
+Customize kanban columns using **taskColumnPreferences**:
+
+```typescript
+{
+  workspaceId: "workspace_123",
+  column: "done",
+  name: "Completed",
+  color: "#10b981",
+  trackTimeInStatus: true,
+  showConfetti: true,
+  hidden: false,
+  isComplete: true,
+  targetTimeInStatus: 7,
+  targetTimeUnit: "days"
+}
+```
+
+### Column Preferences Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `column` | text | Status column name (required) |
+| `name` | text | Display name override |
+| `color` | text | Hex color code |
+| `trackTimeInStatus` | boolean | Track time spent in this status |
+| `showConfetti` | boolean | Show confetti when tasks move here |
+| `hidden` | boolean | Hide column from kanban view |
+| `isComplete` | boolean | Mark as a completion column |
+| `targetTimeInStatus` | integer | Target duration in this status |
+| `targetTimeUnit` | text | Unit: `days`, `hours`, `weeks` |
+
+<Tip>
+  Enable `showConfetti: true` on your "done" column to celebrate task completions!
+</Tip>
+
+## Time in Status Tracking
+
+When `trackTimeInStatus: true`, Relio tracks how long tasks spend in each status:
+
+1. Task enters status → `statusEnteredAt` is set
+2. Task exits status → Duration is calculated
+3. Compare to `targetTimeInStatus` for performance metrics
+
+```typescript
+const timeInStatus = new Date() - new Date(task.statusEnteredAt);
+const daysInStatus = timeInStatus / (1000 * 60 * 60 * 24);
+
+if (daysInStatus > columnPrefs.targetTimeInStatus) {
+  // Task is overdue in this status
+}
+```
+
+<Info>
+  Use time-in-status tracking to identify bottlenecks and optimize your workflow.
+</Info>
+
+## Positioning and Ordering
+
+The `position` field controls task order within each status column:
+
+- Lower numbers appear first
+- Default: `0`
+- Manually reorder by updating position values
+- Gaps between positions allow easy reordering
+
+```typescript
+// Move task to top of column
+task.position = Math.min(...otherTasksInColumn.map(t => t.position)) - 1;
+
+// Move task to bottom
+task.position = Math.max(...otherTasksInColumn.map(t => t.position)) + 1;
+```
+
+## Indexing and Performance
+
+Tasks are indexed for fast queries:
+- **Workspace + Status** - Kanban column views
+- **Workspace + Priority** - Priority-based filtering
+- **Workspace + Status Entered** - Time-in-status queries
+- **Workspace + Due Date** - Upcoming tasks
+- **Created By** - Tasks I created
+- **Contact/Property/Company/Deal** - Related tasks
+- **Assignees** - My assigned tasks
+
+## Task Workflow Example
+
+<Steps>
+  <Step title="Create task">
+    ```json
+    {
+      "title": "Follow up with buyer on 123 Main St",
+      "description": "Send financial projections and answer questions",
+      "status": "todo",
+      "priority": "high",
+      "dueDate": "2024-03-15T17:00:00Z",
+      "contactId": "buyer_contact",
+      "propertyId": "property_123",
+      "dealId": "deal_456",
+      "createdById": "user_agent"
+    }
+    ```
+  </Step>
+  
+  <Step title="Assign to team member">
+    ```json
+    {
+      "taskId": "task_789",
+      "userId": "user_agent",
+      "assignedAt": "2024-03-12T10:00:00Z"
+    }
+    ```
+  </Step>
+  
+  <Step title="Start working">
+    Update status:
+    ```json
+    {
+      "status": "in_progress",
+      "statusEnteredAt": "2024-03-13T09:00:00Z"
+    }
+    ```
+  </Step>
+  
+  <Step title="Complete task">
+    ```json
+    {
+      "status": "done",
+      "statusEnteredAt": "2024-03-13T14:30:00Z"
+    }
+    ```
+    
+    If column preferences have `showConfetti: true`, celebrate!
+  </Step>
+</Steps>
+
+## Filtering Tasks
+
+Common task queries:
+
+### My Tasks
+```sql
+SELECT tasks.* FROM tasks
+JOIN task_assignees ON tasks.id = task_assignees.task_id
+WHERE task_assignees.user_id = 'current_user'
+AND tasks.status != 'done'
+```
+
+### Overdue Tasks
+```sql
+SELECT * FROM tasks
+WHERE due_date < NOW()
+AND status NOT IN ('done', 'cancelled')
+```
+
+### High Priority Tasks
+```sql
+SELECT * FROM tasks
+WHERE priority IN ('urgent', 'high')
+AND status = 'todo'
+ORDER BY priority DESC, due_date ASC
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Set realistic due dates">
+    Always assign `dueDate` values to tasks. This enables calendar views, overdue alerts, and prioritization.
+  </Accordion>
+  
+  <Accordion title="Use priorities consistently">
+    Establish team standards for priority levels. Reserve `urgent` for true emergencies to avoid priority inflation.
+  </Accordion>
+  
+  <Accordion title="Link tasks to records">
+    Connect tasks to contacts, deals, and properties for context. This makes tasks actionable and discoverable from record views.
+  </Accordion>
+  
+  <Accordion title="Review time-in-status metrics">
+    Enable time tracking for `in_progress` status to identify tasks that are stuck or taking longer than expected.
+  </Accordion>
+  
+  <Accordion title="Archive completed tasks">
+    Move tasks to `done` rather than deleting them. This maintains history and enables performance reporting.
+  </Accordion>
+  
+  <Accordion title="Use multi-assign for collaboration">
+    Assign tasks to all team members who need visibility or involvement, not just the primary owner.
+  </Accordion>
+</AccordionGroup>
+
+## Task vs. Activity
+
+When to use Tasks vs. Activities:
+
+| Use Tasks For | Use Activities For |
+|---------------|-------------------|
+| Future action items | Past interactions |
+| Assigned work | Logged history |
+| Status tracking | Timeline building |
+| Team collaboration | Individual notes |
+| Due dates and priorities | Timestamps and context |
+
+<Card title="Activities" icon="timeline" href="/features/activities">
+  Learn about activity tracking for logging interactions
+</Card>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Activities" icon="list" href="/features/activities">
+    Track completed interactions and build timelines
+  </Card>
+  <Card title="Deals" icon="handshake" href="/features/deals">
+    Link tasks to deals for transaction management
+  </Card>
+</CardGroup>

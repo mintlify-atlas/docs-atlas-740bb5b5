@@ -1,0 +1,163 @@
+---
+title: Billing & Subscriptions
+description: Manage your Relio subscription plan, seat limits, and payment settings
+---
+
+## Overview
+
+Relio offers flexible pricing with a free plan and paid Pro plans. All billing operations require the **owner** role.
+
+## Plan Tiers
+
+### Free Plan
+
+- **Seats**: 1 user
+- **Rate limits**: 180 requests/minute (general), 30 mutations/minute
+- **AI quota**: Limited monthly messages
+- **Features**: Full CRM functionality with usage limits
+
+### Pro Plan
+
+Available on monthly or yearly billing cycles.
+
+- **Seats**: Configurable (minimum based on current team size)
+- **Rate limits**: 600 requests/minute (general), 150 mutations/minute
+- **AI quota**: Generous monthly allowance (scales with seats)
+- **Features**: Priority support, advanced integrations, higher API limits
+
+<Warning>
+  **Trial Period**: New Pro subscriptions include a **14-day free trial**. You will not be charged until the trial ends. Only one trial per workspace is allowed.
+</Warning>
+
+## Upgrading Your Plan
+
+<Steps>
+  <Step title="Navigate to billing settings">
+    Go to **Settings → Workspace → Billing**
+  </Step>
+  
+  <Step title="Select Pro plan">
+    Click **Upgrade to Pro** and choose your billing cycle (monthly or yearly)
+  </Step>
+  
+  <Step title="Configure seats">
+    Choose the number of seats you need. The minimum is set to your current active member count.
+  </Step>
+  
+  <Step title="Complete checkout">
+    You'll be redirected to a secure Polar checkout page to enter payment details.
+  </Step>
+  
+  <Step title="Confirmation">
+    After successful payment, you'll return to Relio with Pro access activated immediately.
+  </Step>
+</Steps>
+
+## Seat-Based Pricing
+
+Relio Pro uses seat-based pricing when enabled by your administrator.
+
+- Each active member (excluding super admins) consumes one seat
+- You can add or remove seats at any time via the customer portal
+- Seat changes are prorated automatically
+- Your subscription will be adjusted at your next billing cycle
+
+**Fallback Behavior**: If seat-based pricing is not enabled, Pro plans default to a fixed seat limit (configured via `POLAR_PRO_FALLBACK_SEAT_LIMIT`).
+
+## Managing Your Subscription
+
+Once subscribed, you can manage your plan through the **Polar Customer Portal**:
+
+1. Go to **Settings → Workspace → Billing**
+2. Click **Manage Subscription**
+3. You'll be redirected to the Polar portal where you can:
+   - Update payment method
+   - Add or remove seats
+   - View invoices and payment history
+   - Cancel your subscription
+
+## Downgrading or Canceling
+
+To downgrade from Pro to Free:
+
+1. Access the Polar customer portal via **Manage Subscription**
+2. Cancel your subscription
+3. Your Pro access will remain active until the end of your billing period
+4. After cancellation, your workspace will revert to the Free plan
+
+<Warning>
+  If you cancel Pro and your active member count exceeds the free plan limit (1 seat), your workspace will be **locked** until you:
+  - Remove members to get back under the limit
+  - Re-subscribe to Pro
+  - Request a trial extension (one-time, 7 days)
+</Warning>
+
+## Trial Extensions
+
+If your Pro trial has ended and you need more time to evaluate Relio:
+
+1. Go to **Settings → Workspace → Billing**
+2. Click **Request Trial Extension**
+3. You'll receive a **one-time 7-day extension** with full Pro access
+
+**Restrictions:**
+- Only available if you've used a trial before
+- Can only be used once per workspace
+- Not available if you currently have an active Pro subscription
+
+See `packages/api/src/routers/billing.ts:449` for implementation details.
+
+## AI Usage & Top-Ups
+
+Relio includes AI-powered features with monthly quota limits:
+
+- **Free plan**: Base quota for AI chat messages
+- **Pro plan**: Generous quota that scales with your seat count
+
+If you exceed your monthly AI quota, you can purchase top-up packs:
+
+- **Starter Pack**: Additional messages for occasional use
+- **Standard Pack**: Medium-sized top-up
+- **Bulk Pack**: Large quota increase for power users
+
+Top-ups are one-time purchases and do not auto-renew.
+
+## Payment Management
+
+All payments are processed securely through **Polar**. Relio never stores your credit card information.
+
+- **Accepted payment methods**: Major credit/debit cards
+- **Billing cycle**: Monthly or yearly
+- **Automatic renewal**: Subscriptions auto-renew unless canceled
+- **Invoices**: Available in the Polar customer portal
+
+## Billing Status Reference
+
+Your workspace can have one of the following billing statuses:
+
+| Status | Description |
+|--------|-------------|
+| `free` | No active subscription |
+| `trialing` | In 14-day Pro trial period |
+| `active` | Paid Pro subscription active |
+| `past_due` | Payment failed, grace period active |
+| `canceled` | Subscription canceled, Pro access expired |
+
+See `packages/api/src/lib/billing.ts:9` for the type definitions.
+
+## Technical Details
+
+For developers and technical users:
+
+- Billing data is stored in the `workspaceBilling` table
+- Polar is used as the billing provider (Polar SDK integration)
+- Seat limits are enforced in `workspaceProcedure` middleware
+- Rate limits are determined by `planTier` and enforced per workspace
+- Workspace external IDs use the format: `workspace:{organizationId}`
+
+**Environment Variables:**
+- `POLAR_ORGANIZATION_TOKEN`: API token for Polar integration
+- `POLAR_PRO_MONTHLY_PRODUCT_ID`: Product ID for monthly Pro plan
+- `POLAR_PRO_YEARLY_PRODUCT_ID`: Product ID for yearly Pro plan
+- `POLAR_SEAT_BASED_PRICING_ENABLED`: Enable seat-based pricing (`"true"` or `"false"`)
+- `POLAR_PRO_FALLBACK_SEAT_LIMIT`: Default seat limit when seat-based pricing is disabled

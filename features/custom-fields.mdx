@@ -1,0 +1,552 @@
+---
+title: Custom Fields
+description: Extend your CRM with custom fields tailored to your business needs
+---
+
+Custom fields allow you to extend Relio's standard data model with additional fields specific to your business, workflows, and industry.
+
+## Overview
+
+Custom fields use an Entity-Attribute-Value (EAV) pattern that lets you add fields to any object type without schema migrations.
+
+### Supported Entity Types
+
+From `custom-fields.ts:16`, you can add custom fields to:
+
+- **Contacts** - People in your CRM
+- **Properties** - Real estate listings
+- **Companies** - Organizations
+- **Deals** - Sales opportunities
+
+### Field Types
+
+From `custom-fields.ts:22`, Relio supports these field types:
+
+<CardGroup cols={2}>
+  <Card title="text" icon="font">
+    Single-line text input
+  </Card>
+  
+  <Card title="textarea" icon="align-left">
+    Multi-line text area
+  </Card>
+  
+  <Card title="number" icon="hashtag">
+    Numeric values (integers or decimals)
+  </Card>
+  
+  <Card title="date" icon="calendar">
+    Date picker
+  </Card>
+  
+  <Card title="checkbox" icon="check-square">
+    Boolean true/false
+  </Card>
+  
+  <Card title="select" icon="list">
+    Single choice from predefined options
+  </Card>
+  
+  <Card title="multi_select" icon="list-check">
+    Multiple choices from predefined options
+  </Card>
+  
+  <Card title="url" icon="link">
+    Website or link with validation
+  </Card>
+  
+  <Card title="email" icon="envelope">
+    Email address with validation
+  </Card>
+  
+  <Card title="phone" icon="phone">
+    Phone number with formatting
+  </Card>
+</CardGroup>
+
+## Creating Custom Fields
+
+Only workspace admins can create custom field definitions.
+
+### Basic Field Creation
+
+```typescript
+const field = await api.customFields.create.mutate({
+  entityType: "contacts",
+  label: "Lead Score",
+  fieldType: "number",
+  required: false,
+  description: "Qualification score from 1-100"
+});
+
+// Returns:
+// {
+//   id: "field_123",
+//   workspaceId: "org_456",
+//   entityType: "contacts",
+//   label: "Lead Score",
+//   slug: "lead_score", // auto-generated
+//   fieldType: "number",
+//   required: false,
+//   sortOrder: 0,
+//   description: "Qualification score from 1-100",
+//   createdAt: Date,
+//   updatedAt: Date
+// }
+```
+
+### Select Field with Options
+
+For `select` and `multi_select` fields, provide an `options` array:
+
+```typescript
+await api.customFields.create.mutate({
+  entityType: "properties",
+  label: "Property Condition",
+  fieldType: "select",
+  options: [
+    "Excellent",
+    "Good",
+    "Fair",
+    "Needs Work",
+    "Fixer Upper"
+  ],
+  required: true,
+  description: "Overall condition of the property"
+});
+```
+
+### Field Slugs
+
+From `custom-fields.ts:16-23`, slugs are automatically generated from labels:
+
+```typescript
+"Lead Score"           → "lead_score"
+"Primary Decision Maker" → "primary_decision_maker"
+"HOA Fee (Monthly)"    → "hoa_fee_monthly"
+```
+
+Slugs must be unique within a workspace + entity type combination.
+
+<Warning>
+If you try to create a field with a duplicate slug, you'll get a `CONFLICT` error. Choose unique, descriptive labels.
+</Warning>
+
+## Using Custom Fields
+
+### Getting Field Values for a Record
+
+```typescript
+const values = await api.customFields.getValues.query({
+  entityType: "contacts",
+  recordId: contact.id
+});
+
+// Returns array of field definitions with their values:
+// [
+//   {
+//     field: {
+//       id: "field_123",
+//       label: "Lead Score",
+//       fieldType: "number",
+//       ...
+//     },
+//     valueId: "value_456" | null,
+//     value: "85" | null
+//   },
+//   ...
+// ]
+```
+
+From `customFields.ts:152-192`
+
+### Setting Field Values
+
+Field values are stored as text and parsed according to the field type:
+
+```typescript
+// Number field
+await api.customFields.setValue.mutate({
+  fieldId: "field_123",
+  recordId: contact.id,
+  value: "85"
+});
+
+// Date field
+await api.customFields.setValue.mutate({
+  fieldId: "field_date",
+  recordId: property.id,
+  value: "2024-06-15"
+});
+
+// Select field
+await api.customFields.setValue.mutate({
+  fieldId: "field_condition",
+  recordId: property.id,
+  value: "Excellent"
+});
+
+// Multi-select field (JSON array as string)
+await api.customFields.setValue.mutate({
+  fieldId: "field_amenities",
+  recordId: property.id,
+  value: JSON.stringify(["Pool", "Gym", "Parking"])
+});
+
+// Checkbox field
+await api.customFields.setValue.mutate({
+  fieldId: "field_verified",
+  recordId: contact.id,
+  value: "true"
+});
+```
+
+From `customFields.ts:194-250`
+
+### Upsert Behavior
+
+The `setValue` mutation automatically:
+1. Creates a new value if one doesn't exist
+2. Updates the existing value if it already exists
+
+You don't need to check whether a value exists first.
+
+## Managing Custom Fields
+
+### Listing All Fields
+
+```typescript
+const contactFields = await api.customFields.list.query({
+  entityType: "contacts"
+});
+
+// Fields are returned in sort order
+contactFields.forEach(field => {
+  console.log(`${field.label} (${field.fieldType})`);
+  if (field.required) console.log("  Required");
+  if (field.options) console.log(`  Options: ${field.options.join(", ")}`);
+});
+```
+
+From `customFields.ts:26-40`
+
+### Updating a Field Definition
+
+```typescript
+await api.customFields.update.mutate({
+  id: field.id,
+  label: "Lead Score (Updated)",
+  description: "Automated lead qualification score",
+  required: true,
+  sortOrder: 5
+});
+```
+
+<Note>
+You cannot change the `entityType` or `fieldType` of an existing field. Create a new field instead.
+</Note>
+
+From `customFields.ts:101-126`
+
+### Deleting a Field
+
+Deleting a field definition cascades to all values:
+
+```typescript
+await api.customFields.delete.mutate(field.id);
+```
+
+<Warning>
+Deleting a custom field permanently removes all stored values for that field across all records. This cannot be undone.
+</Warning>
+
+From `customFields.ts:128-150`
+
+## Field Ordering
+
+Control the display order of custom fields with `sortOrder`:
+
+```typescript
+// Move "Lead Score" to the top
+await api.customFields.update.mutate({
+  id: leadScoreField.id,
+  sortOrder: 0
+});
+
+// Move "Notes" to the bottom
+await api.customFields.update.mutate({
+  id: notesField.id,
+  sortOrder: 999
+});
+```
+
+From `customFields.ts:69-81`, fields are returned in ascending `sortOrder`, with ties broken by `createdAt`.
+
+## Schema Reference
+
+### Custom Field Definition
+
+From `custom-fields.ts:10-46`:
+
+```typescript
+interface CustomField {
+  id: string;
+  workspaceId: string;
+  
+  // Which entity type this field belongs to
+  entityType: "contacts" | "properties" | "companies" | "deals";
+  
+  // Display label shown in the UI
+  label: string;
+  
+  // Unique slug within workspace+entity (auto-generated from label)
+  slug: string;
+  
+  // Data type
+  fieldType: "text" | "textarea" | "number" | "date" | "checkbox" | 
+             "select" | "multi_select" | "url" | "email" | "phone";
+  
+  // Whether this field is required
+  required: boolean;
+  
+  // Sort order for display
+  sortOrder: number;
+  
+  // Options for select / multi_select fields (JSON array of strings)
+  options?: string[];
+  
+  // Optional description / help text
+  description?: string;
+  
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+### Custom Field Value
+
+From `custom-fields.ts:48-76`:
+
+```typescript
+interface CustomFieldValue {
+  id: string;
+  workspaceId: string;
+  
+  // FK to custom_fields
+  fieldId: string;
+  
+  // The entity record's ID (could be contact, property, company, or deal)
+  recordId: string;
+  
+  // The stored value — serialized to text. JSON array for multi_select.
+  value: string | null;
+  
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+## Real-World Examples
+
+### Real Estate Custom Fields
+
+<CodeGroup>
+```typescript Properties
+// Property-specific fields
+await api.customFields.create.mutate({
+  entityType: "properties",
+  label: "HOA Fee (Monthly)",
+  fieldType: "number",
+  description: "Monthly homeowner association fee in USD"
+});
+
+await api.customFields.create.mutate({
+  entityType: "properties",
+  label: "Pool Type",
+  fieldType: "select",
+  options: ["None", "In-Ground", "Above-Ground", "Infinity", "Indoor"]
+});
+
+await api.customFields.create.mutate({
+  entityType: "properties",
+  label: "Last Inspection Date",
+  fieldType: "date",
+  required: true
+});
+```
+
+```typescript Contacts
+// Contact qualification fields
+await api.customFields.create.mutate({
+  entityType: "contacts",
+  label: "Budget Range",
+  fieldType: "select",
+  options: [
+    "Under $500k",
+    "$500k - $750k",
+    "$750k - $1M",
+    "$1M - $2M",
+    "Over $2M"
+  ],
+  required: true
+});
+
+await api.customFields.create.mutate({
+  entityType: "contacts",
+  label: "Pre-Approved",
+  fieldType: "checkbox",
+  description: "Has mortgage pre-approval"
+});
+
+await api.customFields.create.mutate({
+  entityType: "contacts",
+  label: "Preferred Neighborhoods",
+  fieldType: "multi_select",
+  options: [
+    "Downtown",
+    "Suburbs",
+    "Waterfront",
+    "Historic District",
+    "New Development"
+  ]
+});
+```
+
+```typescript Deals
+// Deal tracking fields
+await api.customFields.create.mutate({
+  entityType: "deals",
+  label: "Financing Type",
+  fieldType: "select",
+  options: [
+    "Conventional",
+    "FHA",
+    "VA",
+    "Cash",
+    "Seller Financing"
+  ]
+});
+
+await api.customFields.create.mutate({
+  entityType: "deals",
+  label: "Inspection Contingency Deadline",
+  fieldType: "date"
+});
+
+await api.customFields.create.mutate({
+  entityType: "deals",
+  label: "Earnest Money Deposit",
+  fieldType: "number",
+  description: "Amount in USD"
+});
+```
+</CodeGroup>
+
+## Displaying Custom Fields in UI
+
+Here's how to render custom fields on a record detail page:
+
+```tsx
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
+
+function ContactCustomFields({ contactId }: { contactId: string }) {
+  const { data: fields } = api.customFields.getValues.useQuery({
+    entityType: "contacts",
+    recordId: contactId
+  });
+
+  if (!fields?.length) return null;
+
+  return (
+    <div className="space-y-4">
+      <h3 className="font-semibold">Additional Information</h3>
+      
+      {fields.map(({ field, value }) => (
+        <div key={field.id}>
+          <label className="text-sm font-medium">
+            {field.label}
+            {field.required && <span className="text-red-500">*</span>}
+          </label>
+          
+          {field.fieldType === "select" && (
+            <select
+              value={value || ""}
+              onChange={(e) => handleSave(field.id, e.target.value)}
+            >
+              <option value="">Select...</option>
+              {field.options?.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          )}
+          
+          {field.fieldType === "checkbox" && (
+            <input
+              type="checkbox"
+              checked={value === "true"}
+              onChange={(e) => handleSave(field.id, String(e.target.checked))}
+            />
+          )}
+          
+          {field.fieldType === "date" && (
+            <input
+              type="date"
+              value={value || ""}
+              onChange={(e) => handleSave(field.id, e.target.value)}
+            />
+          )}
+          
+          {field.description && (
+            <p className="text-xs text-gray-500">{field.description}</p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Plan your field structure">
+    Before creating fields, map out what information you need to capture and which entity type it belongs to. Group related fields together.
+  </Accordion>
+
+  <Accordion title="Use descriptive labels">
+    Labels should be clear and self-explanatory. "Monthly HOA Fee" is better than "HOA" or "Fee".
+  </Accordion>
+
+  <Accordion title="Provide help text">
+    Use the `description` field to explain what the field is for, especially for fields with specific formats or requirements.
+  </Accordion>
+
+  <Accordion title="Limit required fields">
+    Only mark fields as required if they're truly essential. Too many required fields can slow down data entry.
+  </Accordion>
+
+  <Accordion title="Keep select options focused">
+    For select and multi-select fields, provide 3-10 clear options. Too many options become hard to navigate.
+  </Accordion>
+
+  <Accordion title="Use appropriate field types">
+    Choose the right field type for validation and UX:
+    - Use `number` for numeric values to enable calculations
+    - Use `date` for dates to get proper date pickers
+    - Use `email` and `url` for automatic validation
+  </Accordion>
+</AccordionGroup>
+
+## Limitations
+
+<Warning>
+**Custom field limitations:**
+
+- Cannot change field type after creation
+- Cannot change entity type after creation  
+- Slugs must be unique per workspace + entity type
+- All values stored as text (parsed by field type)
+- Deleting a field deletes all its values (irreversible)
+- Only admins can create/update/delete field definitions
+</Warning>

@@ -1,0 +1,249 @@
+---
+title: Company Management
+description: Track brokerages, developers, property management firms, and other business entities
+---
+
+## Overview
+
+Companies represent business entities in your real estate network. Track brokerages, developers, investment firms, lenders, and other organizations you work with.
+
+<CardGroup cols={2}>
+  <Card title="Company Profiles" icon="building">
+    Store complete business information with enrichment from public data sources
+  </Card>
+  <Card title="Contact Links" icon="users">
+    Associate employees, partners, and key contacts with their companies
+  </Card>
+  <Card title="Business Intelligence" icon="chart-mixed">
+    Track employee count, funding, revenue estimates, and growth metrics
+  </Card>
+  <Card title="Deal Association" icon="handshake">
+    Link companies to properties and deals they're involved with
+  </Card>
+</CardGroup>
+
+## Creating Companies
+
+<Steps>
+  <Step title="Enter company name">
+    The only required field:
+    - `name` - Company name
+  </Step>
+  
+  <Step title="Add business details">
+    Core company information:
+    - `domain` - Company website domain (e.g., "relio.com")
+    - `website` - Full website URL
+    - `email` - General contact email
+    - `phone` - Main phone number
+    - `type` - Company type (see below)
+    - `description` - Company overview
+  </Step>
+  
+  <Step title="Set location">
+    Physical address and location:
+    - `address` - Street address
+    - `city` - City
+    - `state` - State/province
+    - `zip` - Postal code
+    - `latitude`, `longitude` - Auto-populated for mapping
+    - `primaryLocation` - Primary market/region
+  </Step>
+  
+  <Step title="Link social profiles">
+    Add social media and professional profiles:
+    - `linkedIn` - LinkedIn company page
+    - `twitter` - Twitter/X handle
+    - `facebook` - Facebook page
+    - `instagram` - Instagram handle
+    - `angelList` - AngelList profile (for startups)
+  </Step>
+</Steps>
+
+## Company Types
+
+Categorize companies by their primary business:
+
+| Type | Description |
+|------|-------------|
+| `brokerage` | Real estate brokerage firms |
+| `developer` | Property developers and builders |
+| `property_management` | Property management companies |
+| `investment_firm` | Real estate investment firms and funds |
+| `title` | Title and escrow companies |
+| `lender` | Mortgage lenders and banks |
+| `other` | Other business types |
+
+<Info>
+  The `type` field helps filter and segment companies for targeted outreach and reporting.
+</Info>
+
+## Company Fields Reference
+
+### Core Information
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | text | Company name (required) |
+| `domain` | text | Website domain |
+| `logoUrl` | text | Company logo URL |
+| `type` | enum | Company type (see above) |
+| `description` | text | Company description |
+| `website` | text | Company website URL |
+
+### Contact Information
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `phone` | text | Main phone number |
+| `email` | text | General contact email |
+| `address` | text | Street address |
+| `city` | text | City |
+| `state` | text | State/province |
+| `zip` | text | Postal code |
+| `latitude` | double | Geolocation latitude |
+| `longitude` | double | Geolocation longitude |
+| `primaryLocation` | text | Primary market/region |
+
+### Social & Web Presence
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `linkedIn` | text | LinkedIn company page URL |
+| `twitter` | text | Twitter/X handle |
+| `twitterFollowerCount` | integer | Twitter follower count |
+| `facebook` | text | Facebook page URL |
+| `instagram` | text | Instagram handle |
+| `angelList` | text | AngelList profile URL |
+
+### Business Intelligence (Enriched)
+
+These fields are typically populated through automatic enrichment:
+
+| Field | Type | Values/Description |
+|-------|------|-------------------|
+| `employeeRange` | enum | `1-10`, `11-50`, `51-200`, `201-500`, `501-1000`, `1001-5000`, `5001-10000`, `10001+` |
+| `estimatedArr` | enum | `pre_revenue`, `under_1m`, `1m_10m`, `10m_50m`, `50m_100m`, `100m_500m`, `500m_1b`, `over_1b` |
+| `fundingRaised` | integer | Total funding raised (dollars) |
+| `foundationDate` | timestamp | Company founding date |
+| `categories` | jsonb | Array of business categories/tags |
+
+<Tip>
+  Enrichment data helps prioritize high-value prospects and understand company capabilities.
+</Tip>
+
+### Enrichment Tracking
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `lastEnrichedAt` | timestamp | Last enrichment date |
+
+## Linking Contacts to Companies
+
+Associate employees, executives, and key contacts with companies:
+
+1. Open a contact record
+2. Use the company relationship feature to link them
+3. Optionally specify their role: `employee`, `owner`, `partner`, `client`
+
+<Note>
+  When you link a contact to a company, you can view all associated contacts from the company's detail view.
+</Note>
+
+## Company-Property Relationships
+
+Link companies to properties they:
+- Own or manage
+- Have listed for sale
+- Developed or built
+- Are acquiring or selling
+
+Relationship types: `listed_by`, `managed_by`, `developed_by`, `owns`
+
+## Filtering Companies
+
+Companies are indexed for efficient filtering:
+- **By workspace** - All queries scoped to your organization
+- **By type** - Filter by brokerage, developer, etc.
+
+## Company Enrichment
+
+Relio automatically enriches company records with public business data:
+
+<CardGroup cols={2}>
+  <Card title="Company Profile" icon="id-card">
+    Logo, description, website, and social profiles
+  </Card>
+  <Card title="Size & Scale" icon="chart-line">
+    Employee count ranges and revenue estimates
+  </Card>
+  <Card title="Funding Data" icon="dollar-sign">
+    Total funding raised and investor information
+  </Card>
+  <Card title="Categories" icon="tags">
+    Business categories and industry classifications
+  </Card>
+</CardGroup>
+
+Enrichment triggers when:
+- A company domain is provided
+- The company name matches a known business
+- A LinkedIn profile is available
+
+<Info>
+  The `lastEnrichedAt` field shows when data was last updated. Re-enrichment occurs periodically to keep data fresh.
+</Info>
+
+## Custom Fields
+
+Extend company records with custom fields specific to your business needs. Add fields for:
+- Partnership tier or status
+- Contract renewal dates
+- Service level agreements
+- Custom ratings or scores
+
+<Card title="Custom Fields" icon="sliders" href="/features/custom-fields">
+  Learn how to add custom fields to companies
+</Card>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always add the company domain">
+    Providing the `domain` field enables automatic enrichment and logo fetching. Use the root domain (e.g., "company.com") without "www" or protocols.
+  </Accordion>
+  
+  <Accordion title="Link related contacts">
+    Connect employees and key contacts to companies to map organizational relationships and identify decision-makers.
+  </Accordion>
+  
+  <Accordion title="Use company types strategically">
+    Accurate `type` classification enables targeted filtering for marketing, reporting, and relationship management.
+  </Accordion>
+  
+  <Accordion title="Monitor enrichment status">
+    Check `lastEnrichedAt` to ensure company data is current. Request re-enrichment for stale records.
+  </Accordion>
+</AccordionGroup>
+
+## Example Company Record
+
+```json
+{
+  "name": "Acme Real Estate Development",
+  "domain": "acmerealestate.com",
+  "type": "developer",
+  "phone": "+1-555-0123",
+  "email": "info@acmerealestate.com",
+  "address": "123 Main Street",
+  "city": "San Francisco",
+  "state": "CA",
+  "zip": "94105",
+  "website": "https://acmerealestate.com",
+  "linkedIn": "https://linkedin.com/company/acme-real-estate",
+  "employeeRange": "51-200",
+  "estimatedArr": "10m_50m",
+  "categories": ["Real Estate Development", "Commercial Real Estate"],
+  "description": "Leading commercial real estate developer in the Bay Area"
+}
+```

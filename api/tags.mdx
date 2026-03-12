@@ -1,0 +1,144 @@
+---
+title: Tags API
+description: Manage tags and organize records in your Relio workspace
+---
+
+## tags.getAll()
+
+Get all tags in the workspace with usage counts.
+
+<ParamField path="objectType" type="string">
+  Filter counts by object type (contact, property, company, deal)
+</ParamField>
+
+<ResponseField name="tags" type="Tag[]">
+  Array of tags with usage counts
+  - `id`: Tag ID
+  - `name`: Tag name
+  - `color`: Tag color
+  - `usageCount`: Number of times tag is used
+</ResponseField>
+
+```typescript
+const tags = await trpc.tags.getAll.query({
+  objectType: "contact"
+});
+```
+
+## tags.create()
+
+Create a new tag (or find existing by name).
+
+<ParamField path="name" type="string" required>
+  Tag name
+</ParamField>
+
+<ParamField path="color" type="string">
+  Tag color (auto-assigned if not provided)
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Tag ID
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Tag name
+</ResponseField>
+
+<ResponseField name="color" type="string">
+  Tag color
+</ResponseField>
+
+```typescript
+const tag = await trpc.tags.create.mutate({
+  name: "VIP",
+  color: "purple"
+});
+```
+
+## tags.addToRecord()
+
+Add a tag to a record (find-or-create tag by name).
+
+<ParamField path="objectId" type="string" required>
+  Record ID
+</ParamField>
+
+<ParamField path="objectType" type="string" required>
+  Record type (contact, property, company, deal)
+</ParamField>
+
+<ParamField path="tagId" type="string">
+  Existing tag ID
+</ParamField>
+
+<ParamField path="tagName" type="string">
+  Tag name (creates if doesn't exist)
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Tag ID
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Tag name
+</ResponseField>
+
+```typescript
+const tag = await trpc.tags.addToRecord.mutate({
+  objectId: "clx_contact_123",
+  objectType: "contact",
+  tagName: "Hot Lead"
+});
+```
+
+## tags.removeFromRecord()
+
+Remove a tag from a record.
+
+<ParamField path="objectId" type="string" required>
+  Record ID
+</ParamField>
+
+<ParamField path="objectType" type="string" required>
+  Record type
+</ParamField>
+
+<ParamField path="tagId" type="string" required>
+  Tag ID to remove
+</ParamField>
+
+<ResponseField name="success" type="boolean">
+  Whether the operation succeeded
+</ResponseField>
+
+```typescript
+const result = await trpc.tags.removeFromRecord.mutate({
+  objectId: "clx_contact_123",
+  objectType: "contact",
+  tagId: "clx_tag_456"
+});
+```
+
+## tags.getForObject()
+
+Get all tags for a specific record.
+
+<ParamField path="objectId" type="string" required>
+  Record ID
+</ParamField>
+
+<ParamField path="objectType" type="string" required>
+  Record type
+</ParamField>
+
+<ResponseField name="tags" type="Tag[]">
+  Array of tags assigned to this record
+</ResponseField>
+
+```typescript
+const tags = await trpc.tags.getForObject.query({
+  objectId: "clx_contact_123",
+  objectType: "contact"
+});
+```

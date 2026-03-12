@@ -1,0 +1,183 @@
+---
+title: Authentication
+description: Log in to Relio and manage authentication profiles using the CLI
+---
+
+## Login Flow
+
+The Relio CLI uses an OAuth-based device flow to authenticate with your Relio workspace. This provides a secure way to obtain API credentials without exposing sensitive information.
+
+<Steps>
+  <Step title="Start the login process">
+    Run the `relio login` command:
+
+    ```bash
+    relio login
+    ```
+
+    By default, this connects to `http://localhost:3000` or the URL specified in the `RELIO_SERVER_URL` environment variable.
+  </Step>
+
+  <Step title="Approve the device">
+    The CLI will open your browser automatically to an approval screen. If it doesn't open, you can manually visit the URL displayed in the terminal.
+
+    Review the authorization request and approve it.
+  </Step>
+
+  <Step title="Credentials saved">
+    Once approved, the CLI receives an API key and stores it securely in your local config file:
+
+    ```
+    ~/.config/relio/config.json
+    ```
+
+    Your authentication is now complete.
+  </Step>
+</Steps>
+
+## Login Options
+
+Customize the login process with these flags:
+
+### Server URL
+
+Connect to a specific Relio server:
+
+```bash
+relio login --server https://app.relio.com
+```
+
+```bash
+relio login -s https://app.relio.com
+```
+
+### Profile Name
+
+Store credentials under a specific profile (default is `default`):
+
+```bash
+relio login --profile production
+```
+
+This allows you to manage multiple workspace credentials.
+
+### Client Name
+
+Customize the name shown on the approval screen:
+
+```bash
+relio login --client-name "My Development Machine"
+```
+
+### Token Name
+
+Set a custom name for the workspace API key:
+
+```bash
+relio login --token-name "CLI Access - Dev Laptop"
+```
+
+### Expiration Time
+
+Set device code expiry time in seconds (60-900):
+
+```bash
+relio login --expires-in 300
+```
+
+### Skip Browser
+
+Prevent the CLI from automatically opening your browser:
+
+```bash
+relio login --no-open
+```
+
+You'll need to manually copy and visit the authorization URL.
+
+## Profile Management
+
+The CLI supports multiple authentication profiles, allowing you to easily switch between different workspaces or environments.
+
+### List Profiles
+
+View all saved profiles:
+
+```bash
+relio profiles list
+```
+
+Example output:
+```
+* default (active)
+  production
+  staging
+```
+
+### Switch Profiles
+
+Set a different profile as active:
+
+```bash
+relio profiles use production
+```
+
+All subsequent commands will use the `production` profile's credentials.
+
+### Profile-Specific Commands
+
+Override the active profile for a single command:
+
+```bash
+relio whoami --profile staging
+```
+
+## Config File Location
+
+Credentials are stored in:
+
+```
+~/.config/relio/config.json
+```
+
+This file contains your API keys and profile information. Keep it secure and never commit it to version control.
+
+## Verify Authentication
+
+Check your current authentication status:
+
+```bash
+relio whoami
+```
+
+Test that your API key is valid:
+
+```bash
+relio auth test
+```
+
+## Logout
+
+Remove credentials for the active profile:
+
+```bash
+relio logout
+```
+
+Remove credentials for a specific profile:
+
+```bash
+relio logout --profile staging
+```
+
+Remove all saved credentials:
+
+```bash
+relio logout --all
+```
+
+## Next Steps
+
+<Card title="CLI Commands Reference" icon="terminal" href="/cli/commands">
+  Explore all available CLI commands and their options
+</Card>

@@ -1,0 +1,172 @@
+---
+title: 'Server SDK'
+description: 'Server-side TypeScript/JavaScript SDK for Relio'
+---
+
+## Installation
+
+```bash
+npm install relio-cli
+```
+
+## Import
+
+```typescript
+import { createRelioServerClient, verifyRelioWebhookRequest } from "relio-cli/server";
+```
+
+## Creating a Server Client
+
+The server SDK provides all the functionality of the client SDK, plus additional server-specific features.
+
+```typescript
+const relio = createRelioServerClient({
+  baseUrl: "http://localhost:3000",
+  apiKey: process.env.RELIO_API_KEY!,
+});
+```
+
+### Configuration Options
+
+<ParamField path="baseUrl" type="string" required>
+  The base URL of your Relio server instance
+</ParamField>
+
+<ParamField path="apiKey" type="string" required>
+  Your workspace API key for authentication
+</ParamField>
+
+## Basic Usage
+
+The server client supports all the same methods as the client SDK:
+
+```typescript
+// Create a contact
+await relio.contact.create({
+  firstName: "Grace",
+  lastName: "Hopper",
+});
+
+// List contacts
+const page = await relio.contacts.list({ limit: 50 });
+
+// Update a contact
+await relio.contact.update(contactId, {
+  notes: "Updated from server",
+});
+```
+
+## Webhook Verification
+
+The server SDK includes the `verifyRelioWebhookRequest()` function to securely verify incoming webhook requests.
+
+### Verifying Webhook Requests
+
+```typescript
+export async function POST(req: Request) {
+  const verified = await verifyRelioWebhookRequest({
+    request: req,
+    secret: process.env.RELIO_WEBHOOK_SECRET!,
+  });
+
+  console.log(verified.event, verified.payload);
+  return new Response("ok");
+}
+```
+
+### Parameters
+
+<ParamField path="request" type="Request" required>
+  The incoming webhook request object
+</ParamField>
+
+<ParamField path="secret" type="string" required>
+  Your webhook secret for signature verification
+</ParamField>
+
+### Return Value
+
+The function returns an object containing:
+
+- `event` - The webhook event type
+- `payload` - The webhook payload data
+
+<Warning>
+  Always verify webhook requests before processing them. This ensures the request came from Relio and hasn't been tampered with.
+</Warning>
+
+## Complete Server Example
+
+Here's a complete example of a Next.js API route handler using the server SDK:
+
+```typescript
+import { createRelioServerClient, verifyRelioWebhookRequest } from "relio-cli/server";
+
+// Initialize server client
+const relio = createRelioServerClient({
+  baseUrl: process.env.RELIO_BASE_URL!,
+  apiKey: process.env.RELIO_API_KEY!,
+});
+
+// Handle webhook events
+export async function POST(req: Request) {
+  // Verify the webhook request
+  const verified = await verifyRelioWebhookRequest({
+    request: req,
+    secret: process.env.RELIO_WEBHOOK_SECRET!,
+  });
+
+  // Process the event
+  console.log(`Received event: ${verified.event}`);
+  console.log(`Payload:`, verified.payload);
+
+  // Respond to specific events
+  if (verified.event === "contact.created") {
+    // Handle new contact
+    console.log(`New contact created: ${verified.payload.id}`);
+  }
+
+  return new Response("ok", { status: 200 });
+}
+
+// Create contacts from your server
+export async function createContact(data: any) {
+  const contact = await relio.contact.create({
+    firstName: data.firstName,
+    lastName: data.lastName,
+    email: [{ address: data.email, isPrimary: true }],
+  });
+
+  return contact;
+}
+```
+
+## Server-Side Use Cases
+
+The server SDK is ideal for:
+
+<CardGroup cols={2}>
+  <Card title="Webhook Handling" icon="webhook">
+    Securely receive and process Relio webhook events
+  </Card>
+  <Card title="Background Jobs" icon="clock">
+    Run scheduled tasks and background synchronization
+  </Card>
+  <Card title="API Integrations" icon="plug">
+    Build server-side integrations with other services
+  </Card>
+  <Card title="Data Processing" icon="database">
+    Perform bulk operations and data transformations
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Client SDK" icon="browser" href="/sdk/client">
+    Learn about the client SDK
+  </Card>
+  <Card title="Examples" icon="code" href="/sdk/examples">
+    View more code examples
+  </Card>
+</CardGroup>

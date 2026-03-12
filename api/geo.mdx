@@ -1,0 +1,665 @@
+---
+title: Geo & Mapping API
+description: Geocoding, spatial search, and property mapping with PostGIS
+---
+
+## Overview
+
+Relio's Geo API provides powerful geospatial capabilities for real estate data:
+
+- **Geocoding**: Convert addresses to coordinates (and vice versa)
+- **Spatial search**: Find properties by bounding box, radius, or polygon
+- **Map clustering**: Efficiently render thousands of properties
+- **Parcel data**: Access county assessor parcel boundaries and data
+
+All spatial queries leverage PostGIS for high-performance 2D indexing.
+
+## Geocoding
+
+### Forward Geocode
+
+Convert an address string to coordinates.
+
+```typescript
+const results = await trpc.geo.geocode.mutate({
+  address: "1600 Amphitheatre Parkway, Mountain View, CA"
+});
+
+console.log(results[0]);
+// {
+//   id: "place.123",
+//   placeName: "1600 Amphitheatre Parkway, Mountain View, CA 94043, United States",
+//   latitude: 37.4224764,
+//   longitude: -122.0842499,
+//   context: [...]
+// }
+```
+
+<Info>
+  Geocoding uses the Mapbox Geocoding API. Returns up to 5 results sorted by relevance.
+</Info>
+
+#### Parameters
+
+<ParamField body="address" type="string" required>
+  Address to geocode
+</ParamField>
+
+#### Response
+
+<ResponseField name="id" type="string" required>
+  Mapbox place ID
+</ResponseField>
+
+<ResponseField name="placeName" type="string" required>
+  Full formatted address
+</ResponseField>
+
+<ResponseField name="latitude" type="number" required>
+  Latitude coordinate
+</ResponseField>
+
+<ResponseField name="longitude" type="number" required>
+  Longitude coordinate
+</ResponseField>
+
+<ResponseField name="context" type="array">
+  Array of context objects (city, state, country, etc.)
+</ResponseField>
+
+### Reverse Geocode
+
+Convert coordinates to an address.
+
+```typescript
+const result = await trpc.geo.reverseGeocode.mutate({
+  lat: 37.4224764,
+  lng: -122.0842499
+});
+
+if (result) {
+  console.log(result.placeName);
+  // "1600 Amphitheatre Parkway, Mountain View, CA 94043, United States"
+}
+```
+
+#### Parameters
+
+<ParamField body="lat" type="number" required>
+  Latitude (-90 to 90)
+</ParamField>
+
+<ParamField body="lng" type="number" required>
+  Longitude (-180 to 180)
+</ParamField>
+
+#### Response
+
+Returns `null` if no result found, otherwise:
+
+<ResponseField name="placeName" type="string" required>
+  Formatted address
+</ResponseField>
+
+<ResponseField name="context" type="array">
+  Context hierarchy (neighborhood, city, state, etc.)
+</ResponseField>
+
+## Spatial Search
+
+### Bounding Box Search
+
+Find properties within a rectangular map viewport. Optimized for map panning/zooming.
+
+```typescript
+const result = await trpc.geo.boundingBox.query({
+  swLat: 34.0,
+  swLng: -118.5,
+  neLat: 34.1,
+  neLng: -118.4,
+  limit: 50,
+  status: "active",
+  minPrice: 500000,
+  maxPrice: 1000000
+});
+
+console.log(result.totalCount);    // Total matching properties
+console.log(result.properties);    // First page of results
+console.log(result.nextCursor);    // For pagination
+```
+
+<Info>
+  Uses PostGIS `GIST` spatial index with `ST_MakeEnvelope` for extremely fast 2D lookups — orders of magnitude faster than `BETWEEN` queries on lat/lng columns.
+</Info>
+
+#### Parameters
+
+<ParamField query="swLat" type="number" required>
+  Southwest corner latitude
+</ParamField>
+
+<ParamField query="swLng" type="number" required>
+  Southwest corner longitude
+</ParamField>
+
+<ParamField query="neLat" type="number" required>
+  Northeast corner latitude
+</ParamField>
+
+<ParamField query="neLng" type="number" required>
+  Northeast corner longitude
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Max results (1-200, default: 50)
+</ParamField>
+
+<ParamField query="cursor" type="string">
+  Property ID for cursor-based pagination
+</ParamField>
+
+**Filter Parameters** (all optional):
+- `search` — Text search (address, city, MLS ID)
+- `status` — Property status
+- `propertyType` — Property type
+- `city`, `county`, `state`, `zip` — Location filters
+- `minPrice`, `maxPrice` — List price range (cents)
+- `minBedrooms`, `minBathrooms`, `minSqft`
+- `minYearBuilt`, `maxYearBuilt`
+- `minUnits`, `maxUnits`
+- `minEquity`, `maxEquity`
+- `minCapRate`, `maxCapRate`
+- `exchange1031` — 1031 exchange eligibility
+- `tagIds` — Array of tag IDs (must match all tags)
+
+#### Response
+
+<ResponseField name="totalCount" type="number" required>
+  Total properties matching filters (ignoring limit/cursor)
+</ResponseField>
+
+<ResponseField name="properties" type="array" required>
+  Array of property objects (see property fields below)
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string">
+  Cursor for next page (null if no more results)
+</ResponseField>
+
+### Radius Search
+
+Find properties within a circular area.
+
+```typescript
+const properties = await trpc.geo.radius.query({
+  lat: 34.0522,
+  lng: -118.2437,
+  radiusMeters: 5000,  // 5km
+  propertyType: "residential",
+  limit: 100
+});
+```
+
+#### Parameters
+
+<ParamField query="lat" type="number" required>
+  Center latitude
+</ParamField>
+
+<ParamField query="lng" type="number" required>
+  Center longitude
+</ParamField>
+
+<ParamField query="radiusMeters" type="number" required>
+  Radius in meters (max 50,000)
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Max results (1-5000, default: 1000)
+</ParamField>
+
+Plus all filter parameters from bounding box search.
+
+#### Response
+
+Array of properties, ordered by distance from center point (ascending).
+
+Each property includes a `distanceMeters` field (only when PostGIS is used).
+
+### Polygon Search
+
+Find properties within a user-drawn polygon.
+
+```typescript
+const properties = await trpc.geo.polygon.query({
+  coordinates: [
+    [
+      [-118.5, 34.0],  // [lng, lat]
+      [-118.4, 34.0],
+      [-118.4, 34.1],
+      [-118.5, 34.1],
+      [-118.5, 34.0]   // Close the ring
+    ]
+  ],
+  status: "active",
+  limit: 1000
+});
+```
+
+<Warning>
+  Polygon coordinates use GeoJSON format: `[longitude, latitude]` (not lat/lng!).
+  
+  The outer ring must close (first point === last point).
+</Warning>
+
+#### Parameters
+
+<ParamField query="coordinates" type="array" required>
+  GeoJSON polygon coordinate rings. Outer array contains rings, each ring is an array of `[lng, lat]` tuples.
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Max results (1-5000, default: 1000)
+</ParamField>
+
+Plus all filter parameters from bounding box search.
+
+#### Response
+
+Array of matching properties.
+
+## Map Viewport (Clustered)
+
+Optimized endpoint for rendering large datasets on interactive maps. Automatically switches between clustered and point modes based on zoom and density.
+
+```typescript
+const viewport = await trpc.geo.viewport.query({
+  swLat: 33.5,
+  swLng: -119.0,
+  neLat: 34.5,
+  neLng: -117.0,
+  zoom: 10,
+  maxPointFeatures: 5000,
+  sidebarLimit: 250,
+  status: "active"
+});
+
+if (viewport.mode === "clusters") {
+  console.log(viewport.clusters);  // Render cluster markers
+  console.log(viewport.gridSize);  // Grid size for this zoom level
+} else {
+  console.log(viewport.points);    // Render individual markers
+}
+
+console.log(viewport.sidebarProperties);  // Properties for sidebar list
+```
+
+### Parameters
+
+<ParamField query="swLat" type="number" required>
+  Southwest corner latitude
+</ParamField>
+
+<ParamField query="swLng" type="number" required>
+  Southwest corner longitude
+</ParamField>
+
+<ParamField query="neLat" type="number" required>
+  Northeast corner latitude
+</ParamField>
+
+<ParamField query="neLng" type="number" required>
+  Northeast corner longitude
+</ParamField>
+
+<ParamField query="zoom" type="number" required>
+  Map zoom level (0-22)
+</ParamField>
+
+<ParamField query="maxPointFeatures" type="number">
+  Threshold for clustering (250-20000, default: 5000). If total count exceeds this or zoom < 9, returns clusters.
+</ParamField>
+
+<ParamField query="sidebarLimit" type="number">
+  Max properties for sidebar list (25-500, default: 250)
+</ParamField>
+
+Plus all filter parameters from bounding box search.
+
+### Response
+
+<ResponseField name="mode" type="enum" required>
+  `"clusters"` or `"points"`
+</ResponseField>
+
+<ResponseField name="totalCount" type="number" required>
+  Total properties matching filters
+</ResponseField>
+
+<ResponseField name="gridSize" type="number">
+  Grid cell size in degrees (only in cluster mode)
+</ResponseField>
+
+<ResponseField name="truncated" type="boolean" required>
+  Whether results were truncated (max 8000 clusters)
+</ResponseField>
+
+<ResponseField name="clusters" type="array" required>
+  Array of cluster objects (empty in point mode)
+  
+  <Expandable title="Cluster fields">
+    <ResponseField name="id" type="string">Cluster ID (grid coordinates)</ResponseField>
+    <ResponseField name="latitude" type="number">Cluster center latitude</ResponseField>
+    <ResponseField name="longitude" type="number">Cluster center longitude</ResponseField>
+    <ResponseField name="propertyCount" type="number">Number of properties in cluster</ResponseField>
+    <ResponseField name="minListPrice" type="number">Lowest list price in cluster</ResponseField>
+    <ResponseField name="maxListPrice" type="number">Highest list price in cluster</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="points" type="array" required>
+  Array of individual properties (empty in cluster mode)
+</ResponseField>
+
+<ResponseField name="sidebarProperties" type="array" required>
+  Properties for sidebar/list view (limited by `sidebarLimit`)
+</ResponseField>
+
+### Clustering Algorithm
+
+Clustering uses a grid-based approach:
+
+| Zoom Level | Grid Size (degrees) |
+|------------|--------------------|
+| ≤ 4 | 2.0 |
+| 5-6 | 1.0 |
+| 7-8 | 0.4 |
+| 9-10 | 0.15 |
+| 11-12 | 0.06 |
+| ≥ 13 | 0.025 |
+
+Properties are grouped by grid cell, and cluster coordinates are the average of all properties in that cell.
+
+## Filter Extent
+
+Get the bounding box of all properties matching your filters. Useful for auto-zooming the map when filters change.
+
+```typescript
+const extent = await trpc.geo.filterExtent.query({
+  city: "Los Angeles",
+  status: "active",
+  minPrice: 500000
+});
+
+if (extent) {
+  // Zoom map to show all matching properties
+  map.fitBounds([
+    [extent.swLng, extent.swLat],
+    [extent.neLng, extent.neLat]
+  ]);
+}
+```
+
+### Parameters
+
+Accepts all filter parameters from bounding box search (no viewport bounds required).
+
+### Response
+
+Returns `null` if no properties match filters, otherwise:
+
+<ResponseField name="swLat" type="number" required>
+  Southwest corner latitude
+</ResponseField>
+
+<ResponseField name="swLng" type="number" required>
+  Southwest corner longitude
+</ResponseField>
+
+<ResponseField name="neLat" type="number" required>
+  Northeast corner latitude
+</ResponseField>
+
+<ResponseField name="neLng" type="number" required>
+  Northeast corner longitude
+</ResponseField>
+
+<ResponseField name="count" type="number" required>
+  Total properties within this extent
+</ResponseField>
+
+## County Parcel Data
+
+### Parcel Boundaries
+
+Retrieve GeoJSON parcel boundaries for rendering on high-zoom maps.
+
+```typescript
+const parcels = await trpc.geo.parcelBoundaries.query({
+  swLat: 34.05,
+  swLng: -118.26,
+  neLat: 34.06,
+  neLng: -118.25,
+  limit: 500
+});
+
+// Render as GeoJSON layer
+map.addSource('parcels', {
+  type: 'geojson',
+  data: parcels
+});
+```
+
+<Info>
+  Parcel boundaries are public data from county assessor offices. Not workspace-scoped.
+</Info>
+
+#### Parameters
+
+<ParamField query="swLat" type="number" required>
+  Southwest corner latitude
+</ParamField>
+
+<ParamField query="swLng" type="number" required>
+  Southwest corner longitude
+</ParamField>
+
+<ParamField query="neLat" type="number" required>
+  Northeast corner latitude
+</ParamField>
+
+<ParamField query="neLng" type="number" required>
+  Northeast corner longitude
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Max parcels (1-1000, default: 500)
+</ParamField>
+
+#### Response
+
+GeoJSON FeatureCollection:
+
+```json
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[...]]]
+      },
+      "properties": {
+        "id": "cm1parcel123",
+        "apn": "1234-567-890",
+        "address": "123 Main St",
+        "city": "Los Angeles",
+        "ownerName": "John Doe",
+        "propertyType": "residential"
+      }
+    }
+  ]
+}
+```
+
+### County Parcel Detail
+
+Get full details for a single parcel.
+
+```typescript
+const parcel = await trpc.geo.countyParcelDetail.query({
+  parcelId: "cm1parcel123"
+});
+
+console.log(parcel.assessedTotalValue);
+console.log(parcel.lastSalePrice);
+console.log(parcel.countyName);  // From joined counties table
+```
+
+#### Parameters
+
+<ParamField query="parcelId" type="string" required>
+  County parcel ID (CUID)
+</ParamField>
+
+#### Response
+
+Complete parcel record including:
+
+- **Identification**: `apn`, `apnFormatted`, `parcelId`, `legalDescription`
+- **Location**: `situsAddress`, `situsCity`, `situsZip`, `latitude`, `longitude`, `geomBoundary`
+- **Owner**: `ownerName`, `ownerAddress`, `ownerCity`, `ownerState`, `ownerZip`
+- **Property Info**: `propertyType`, `landUseCode`, `zoning`, `floodZone`, `schoolDistrict`
+- **Building**: `bedrooms`, `bathrooms`, `yearBuilt`, `sqft`, `units`
+- **Land**: `lotSqft`, `lotAcres`
+- **Assessment**: `assessedLandValue`, `assessedImprovementValue`, `assessedTotalValue`, `taxYear`, `annualTax`
+- **Sales**: `lastSaleDate`, `lastSalePrice`, `lastSaleType`
+- **Meta**: `countyFips`, `countyName`, `countyState`, `dataSource`, `fetchedAt`
+
+## Property Field Reference
+
+All spatial search endpoints return properties with these fields:
+
+<ResponseField name="id" type="string" required>
+  Property ID
+</ResponseField>
+
+<ResponseField name="address" type="string">
+  Street address
+</ResponseField>
+
+<ResponseField name="city" type="string">
+  City
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  State
+</ResponseField>
+
+<ResponseField name="zip" type="string">
+  ZIP code
+</ResponseField>
+
+<ResponseField name="latitude" type="number">
+  Latitude coordinate
+</ResponseField>
+
+<ResponseField name="longitude" type="number">
+  Longitude coordinate
+</ResponseField>
+
+<ResponseField name="propertyType" type="string">
+  residential | commercial | industrial | land | multi_family
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  active | under_contract | sold | off_market | for_lease
+</ResponseField>
+
+<ResponseField name="listPrice" type="number">
+  List price in cents
+</ResponseField>
+
+<ResponseField name="bedrooms" type="number">
+  Number of bedrooms
+</ResponseField>
+
+<ResponseField name="bathrooms" type="string">
+  Number of bathrooms (e.g., "2.5")
+</ResponseField>
+
+<ResponseField name="sqft" type="number">
+  Square footage
+</ResponseField>
+
+<ResponseField name="images" type="string[]">
+  Array of image URLs
+</ResponseField>
+
+## Example: Building an Interactive Map
+
+```typescript
+import { useState } from 'react';
+import Map, { Marker, Source, Layer } from 'react-map-gl';
+import { trpc } from './trpc';
+
+function PropertyMap() {
+  const [viewport, setViewport] = useState({
+    latitude: 34.05,
+    longitude: -118.24,
+    zoom: 12
+  });
+  
+  const [filters, setFilters] = useState({
+    status: 'active',
+    minPrice: 500000
+  });
+  
+  // Fetch properties for current viewport
+  const { data } = trpc.geo.viewport.useQuery({
+    swLat: viewport.latitude - 0.1,
+    swLng: viewport.longitude - 0.1,
+    neLat: viewport.latitude + 0.1,
+    neLng: viewport.longitude + 0.1,
+    zoom: viewport.zoom,
+    ...filters
+  });
+  
+  return (
+    <Map
+      {...viewport}
+      onMove={(evt) => setViewport(evt.viewState)}
+      mapStyle="mapbox://styles/mapbox/streets-v11"
+    >
+      {data?.mode === 'clusters' ? (
+        // Render clusters
+        data.clusters.map((cluster) => (
+          <Marker
+            key={cluster.id}
+            latitude={cluster.latitude}
+            longitude={cluster.longitude}
+          >
+            <div className="cluster">
+              {cluster.propertyCount}
+            </div>
+          </Marker>
+        ))
+      ) : (
+        // Render individual properties
+        data?.points.map((property) => (
+          <Marker
+            key={property.id}
+            latitude={property.latitude}
+            longitude={property.longitude}
+          >
+            <div className="property-marker">
+              ${(property.listPrice / 100).toLocaleString()}
+            </div>
+          </Marker>
+        ))
+      )}
+    </Map>
+  );
+}
+```

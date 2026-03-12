@@ -1,0 +1,357 @@
+---
+title: AI Analytics
+description: Leverage AI-powered analytics, chat assistance, and intelligent insights to understand your CRM data
+---
+
+Relio's AI capabilities help you analyze your CRM data through natural language queries, track AI usage, and get intelligent insights about your contacts, properties, and deals.
+
+## AI Chat Sessions
+
+Create interactive chat sessions to ask questions about your data and get instant insights.
+
+### Creating a Chat Session
+
+```typescript
+const session = await api.ai.createSession.mutate({
+  title: "Q1 Sales Analysis",
+  model: "gpt-4.1-mini" // or your preferred model
+});
+```
+
+### Sending Messages
+
+Chat sessions support a conversational interface where you can ask questions about your data:
+
+```typescript
+// Save messages to a session
+await api.ai.saveMessages.mutate({
+  sessionId: session.id,
+  messages: [
+    {
+      id: "msg_1",
+      role: "user",
+      parts: [{ type: "text", text: "How many properties do we have in San Francisco?" }]
+    },
+    {
+      id: "msg_2",
+      role: "assistant",
+      parts: [{ type: "text", text: "You have 47 properties in San Francisco..." }],
+      modelId: "gpt-4.1-mini",
+      promptTokens: 150,
+      completionTokens: 200
+    }
+  ]
+});
+```
+
+### Listing Your Sessions
+
+```typescript
+const sessions = await api.ai.listSessions.query();
+
+sessions.forEach(session => {
+  console.log(session.title);
+  console.log(`Messages: ${session.messageCount}`);
+  console.log(`Last active: ${session.lastMessageAt}`);
+});
+```
+
+## AI Analytics Queries
+
+Run structured analytics queries against your CRM data using natural language.
+
+### Query Specification
+
+The AI analytics engine accepts structured query specs that define:
+- **Table**: Which entity to query (contacts, properties, companies, deals, activities, tasks)
+- **Filters**: Conditions to filter results
+- **Grouping**: How to group results
+- **Aggregates**: What metrics to calculate (count, sum, avg, min, max)
+
+### Available Tables
+
+From `ai-analytics.ts:44`, the following tables are queryable:
+
+<CodeGroup>
+```typescript contacts
+// Available columns:
+id, firstName, lastName, role, stage, source,
+connectionStrength, title, primaryLocation,
+createdAt, updatedAt
+```
+
+```typescript properties
+// Available columns:
+id, address, city, state, zip, propertyType,
+status, listPrice, soldPrice, estimatedValue,
+bedrooms, units, sqft, yearBuilt, equity, capRate,
+createdAt, updatedAt
+```
+
+```typescript deals
+// Available columns:
+id, name, stage, value, probability,
+expectedCloseDate, closedAt, contactId,
+propertyId, companyId, ownerId,
+createdAt, updatedAt
+```
+
+```typescript companies
+// Available columns:
+id, name, type, city, state, employeeRange,
+estimatedArr, fundingRaised,
+createdAt, updatedAt
+```
+
+```typescript activities
+// Available columns:
+id, type, title, createdAt,
+contactId, propertyId, companyId, dealId
+```
+
+```typescript tasks
+// Available columns:
+id, title, status, priority, dueDate,
+createdAt, updatedAt
+```
+</CodeGroup>
+
+### Example: Count Properties by Type
+
+```typescript
+const result = await api.ai.runAnalyticsQuery.mutate({
+  spec: {
+    table: "properties",
+    groupBy: "propertyType",
+    aggregate: {
+      fn: "count"
+    }
+  }
+});
+
+// Result:
+// [
+//   { propertyType: "single_family", value: 234 },
+//   { propertyType: "multi_family", value: 156 },
+//   { propertyType: "commercial", value: 89 }
+// ]
+```
+
+### Example: Deals by Stage with Total Value
+
+```typescript
+const dealsByStage = await api.ai.runAnalyticsQuery.mutate({
+  spec: {
+    table: "deals",
+    groupBy: "stage",
+    aggregate: {
+      fn: "sum",
+      column: "value"
+    },
+    orderBy: {
+      column: "value",
+      direction: "desc"
+    }
+  }
+});
+```
+
+### Example: Time-Series Analysis
+
+Group results by date buckets (day, week, or month):
+
+```typescript
+const contactsOverTime = await api.ai.runAnalyticsQuery.mutate({
+  spec: {
+    table: "contacts",
+    dateGroup: {
+      column: "createdAt",
+      bucket: "week" // or "day" or "month"
+    },
+    aggregate: {
+      fn: "count"
+    }
+  }
+});
+
+// Result:
+// [
+//   { bucket: "2024-01-01", value: 45 },
+//   { bucket: "2024-01-08", value: 67 },
+//   { bucket: "2024-01-15", value: 52 }
+// ]
+```
+
+### Filtering Results
+
+Apply filters with operators: `eq`, `gte`, `lte`, `ilike`
+
+```typescript
+const highValueDeals = await api.ai.runAnalyticsQuery.mutate({
+  spec: {
+    table: "deals",
+    filters: [
+      { column: "value", operator: "gte", value: "500000" },
+      { column: "stage", operator: "eq", value: "negotiation" }
+    ],
+    aggregate: {
+      fn: "count"
+    }
+  }
+});
+```
+
+<Note>
+All analytics queries are automatically scoped to your workspace. You can only query data your team has access to.
+</Note>
+
+## AI Usage Tracking
+
+Monitor AI usage across your workspace to manage costs and understand adoption.
+
+### Personal Usage
+
+Every team member can view their own AI usage:
+
+```typescript
+const myUsage = await api.ai.getPersonalUsage.query();
+
+console.log(`Sessions: ${myUsage.sessions}`);
+console.log(`Messages: ${myUsage.messages}`);
+console.log(`Tokens: ${myUsage.promptTokens + myUsage.completionTokens}`);
+
+// Per-model breakdown
+myUsage.byModel.forEach(model => {
+  console.log(`${model.model}: ${model.messageCount} messages`);
+});
+```
+
+### Workspace-Wide Analytics (Admin Only)
+
+Admins can view usage across the entire workspace:
+
+```typescript
+const workspaceUsage = await api.ai.getWorkspaceUsageAnalytics.query();
+
+console.log(`Total sessions: ${workspaceUsage.totalSessions}`);
+console.log(`Total messages: ${workspaceUsage.totalMessages}`);
+
+// Per-user breakdown
+workspaceUsage.byUser.forEach(user => {
+  console.log(`${user.name}: ${user.messageCount} messages`);
+  console.log(`  Tokens: ${user.promptTokens + user.completionTokens}`);
+});
+
+// Per-model breakdown
+workspaceUsage.byModel.forEach(model => {
+  console.log(`${model.model}: ${model.messageCount} messages`);
+});
+```
+
+### Daily Usage Trends
+
+Track daily usage patterns throughout the current billing period:
+
+```typescript
+const dailyUsage = await api.ai.getDailyUsage.query();
+
+dailyUsage.forEach(day => {
+  console.log(`${day.day}: ${day.messageCount} messages`);
+  console.log(`  Prompt tokens: ${day.promptTokens}`);
+  console.log(`  Completion tokens: ${day.completionTokens}`);
+});
+```
+
+<Info>
+Usage metrics are calculated for the current billing period only and reset at the start of each period.
+</Info>
+
+## Message Feedback
+
+Provide feedback on AI responses to help improve accuracy:
+
+```typescript
+await api.ai.setMessageFeedback.mutate({
+  sessionId: "session_123",
+  messageId: "msg_456",
+  feedback: "positive" // or "negative"
+});
+```
+
+## Managing Sessions
+
+### Rename a Session
+
+```typescript
+await api.ai.renameSession.mutate({
+  sessionId: "session_123",
+  title: "SF Property Analysis - Updated"
+});
+```
+
+### Delete a Session
+
+```typescript
+await api.ai.deleteSession.mutate({
+  sessionId: "session_123"
+});
+```
+
+<Warning>
+Deleting a session permanently removes all messages and cannot be undone.
+</Warning>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Choose the right model">
+    Use `gpt-4.1-mini` for faster responses and lower costs. Reserve more powerful models for complex analytical tasks.
+  </Accordion>
+
+  <Accordion title="Structure your queries">
+    For analytics queries, be specific with filters and groupings. The more structured your query, the faster and more accurate the results.
+  </Accordion>
+
+  <Accordion title="Monitor usage">
+    Check your personal usage regularly. Admins should review workspace-wide usage to identify trends and optimize costs.
+  </Accordion>
+
+  <Accordion title="Provide feedback">
+    Use the feedback feature to mark helpful or unhelpful responses. This helps improve the AI's accuracy over time.
+  </Accordion>
+</AccordionGroup>
+
+## Query Reference
+
+From `ai-analytics.ts:164-182`, the complete query spec interface:
+
+```typescript
+interface AnalyticsQuerySpec {
+  table: "contacts" | "properties" | "companies" | "deals" | "activities" | "tasks";
+  
+  filters?: {
+    column: string;
+    operator: "eq" | "gte" | "lte" | "ilike";
+    value: string;
+  }[];
+  
+  groupBy?: string;
+  
+  dateGroup?: {
+    column: string;
+    bucket: "day" | "week" | "month";
+  };
+  
+  aggregate?: {
+    fn: "count" | "sum" | "avg" | "min" | "max";
+    column?: string; // omit for count(*)
+  };
+  
+  orderBy?: {
+    column: string;
+    direction: "asc" | "desc";
+  };
+  
+  limit?: number; // max 500
+}
+```

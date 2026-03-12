@@ -1,0 +1,191 @@
+---
+title: Files API
+description: Manage file attachments and uploads in your Relio workspace
+---
+
+## files.list()
+
+List files for a specific record.
+
+<ParamField path="recordId" type="string" required>
+  Record ID
+</ParamField>
+
+<ParamField path="recordType" type="string" required>
+  Record type (contact, property, company, deal)
+</ParamField>
+
+<ResponseField name="folders" type="Folder[]">
+  Array of folders
+</ResponseField>
+
+<ResponseField name="files" type="File[]">
+  Array of files with metadata
+  - `id`: File ID
+  - `name`: File name
+  - `size`: File size in bytes
+  - `mimeType`: MIME type
+  - `storageKey`: R2 storage key
+  - `uploaderName`: Name of user who uploaded
+</ResponseField>
+
+```typescript
+const { folders, files } = await trpc.files.listForRecord.query({
+  recordId: "clx_contact_123",
+  recordType: "contact"
+});
+```
+
+## files.upload()
+
+Upload a file to a record. Use the uploads router to get presigned URLs.
+
+<Info>
+File uploads use a two-step process:
+1. Call `uploads.requestAvatarUpload()` or similar to get a presigned URL
+2. PUT the file directly to R2 using the presigned URL
+3. The file attachment record is created automatically
+</Info>
+
+```typescript
+// Step 1: Get presigned upload URL
+const { uploadUrl, publicUrl, storageKey } = await trpc.uploads.requestAvatarUpload.mutate({
+  fileName: "profile.jpg",
+  mimeType: "image/jpeg",
+  fileSize: 125000
+});
+
+// Step 2: Upload file directly to R2
+await fetch(uploadUrl, {
+  method: "PUT",
+  body: fileBlob,
+  headers: { "Content-Type": "image/jpeg" }
+});
+
+// Step 3: File is now available at publicUrl
+```
+
+## files.delete()
+
+Delete a file attachment.
+
+<ParamField path="fileId" type="string" required>
+  File attachment ID
+</ParamField>
+
+```typescript
+const deleted = await trpc.files.delete.mutate("clx_file_123");
+```
+
+## files.createFolder()
+
+Create a folder for organizing files.
+
+<ParamField path="recordId" type="string" required>
+  Record ID
+</ParamField>
+
+<ParamField path="recordType" type="string" required>
+  Record type
+</ParamField>
+
+<ParamField path="name" type="string" required>
+  Folder name
+</ParamField>
+
+<ParamField path="parentId" type="string">
+  Parent folder ID (for nested folders)
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Folder ID
+</ResponseField>
+
+```typescript
+const folder = await trpc.files.createFolder.mutate({
+  recordId: "clx_property_123",
+  recordType: "property",
+  name: "Inspection Reports"
+});
+```
+
+## files.moveFile()
+
+Move a file to a different folder.
+
+<ParamField path="fileId" type="string" required>
+  File ID
+</ParamField>
+
+<ParamField path="recordId" type="string" required>
+  Record ID
+</ParamField>
+
+<ParamField path="recordType" type="string" required>
+  Record type
+</ParamField>
+
+<ParamField path="folderId" type="string">
+  Target folder ID (null for root)
+</ParamField>
+
+```typescript
+const moved = await trpc.files.moveFile.mutate({
+  fileId: "clx_file_123",
+  recordId: "clx_property_456",
+  recordType: "property",
+  folderId: "clx_folder_789"
+});
+```
+
+## File Sharing
+
+### files.getFileSharing()
+
+Get sharing settings for a file.
+
+<ParamField path="fileId" type="string" required>
+  File ID
+</ParamField>
+
+<ResponseField name="visibility" type="string">
+  Sharing visibility (inherit, workspace, selected_users, private)
+</ResponseField>
+
+<ResponseField name="effectiveSharingMode" type="string">
+  Effective sharing mode
+</ResponseField>
+
+<ResponseField name="selectedUserIds" type="string[]">
+  User IDs with access (if selected_users)
+</ResponseField>
+
+```typescript
+const sharing = await trpc.files.getFileSharing.query({
+  fileId: "clx_file_123"
+});
+```
+
+### files.updateFileSharing()
+
+Update file sharing settings.
+
+<ParamField path="fileId" type="string" required>
+  File ID
+</ParamField>
+
+<ParamField path="visibility" type="string" required>
+  Visibility setting
+</ParamField>
+
+<ParamField path="userIds" type="string[]">
+  User IDs (for selected_users visibility)
+</ParamField>
+
+```typescript
+const result = await trpc.files.updateFileSharing.mutate({
+  fileId: "clx_file_123",
+  visibility: "selected_users",
+  userIds: ["user1", "user2"]
+});
+```

@@ -1,0 +1,75 @@
+---
+title: Workspace Overview
+description: Learn how to create and manage workspaces in Relio
+---
+
+## What is a Workspace?
+
+A workspace (also called an organization) is your team's shared environment in Relio. All contacts, properties, deals, and other CRM data are scoped to a workspace. Each workspace has its own:
+
+- Member list with defined roles and permissions
+- Billing and subscription plan
+- Custom fields, views, and templates
+- Integrations and API tokens
+- Data isolation from other workspaces
+
+## Creating a Workspace
+
+When you first sign up for Relio, a workspace is automatically created for you. You can create additional workspaces to separate different teams, companies, or business units.
+
+<Steps>
+  <Step title="Navigate to workspace settings">
+    Click on your workspace name in the top navigation and select "Create new workspace"
+  </Step>
+  
+  <Step title="Enter workspace details">
+    Provide a name for your workspace. This will be used to generate a unique slug for your workspace URL.
+  </Step>
+  
+  <Step title="Start using your workspace">
+    Your new workspace is created with a free plan by default. You can invite team members and upgrade your plan as needed.
+  </Step>
+</Steps>
+
+## Switching Between Workspaces
+
+If you're a member of multiple workspaces, you can easily switch between them:
+
+1. Click on your current workspace name in the top navigation
+2. Select the workspace you want to switch to from the dropdown
+3. The page will reload with the selected workspace as your active workspace
+
+Your active workspace is stored in your session and persists across browser sessions.
+
+## Workspace Settings
+
+Workspace settings allow you to configure your organization's preferences and behavior. Access workspace settings by navigating to **Settings → Workspace**.
+
+### General Settings
+
+- **Workspace name**: Update your workspace's display name
+- **Workspace slug**: Your unique URL identifier (e.g., `app.relio.com/your-slug`)
+- **Workspace deletion**: Permanently delete your workspace and all associated data
+
+<Warning>
+  Deleting a workspace is **permanent and irreversible**. All contacts, properties, deals, activities, files, and other data will be permanently deleted. You must type your workspace name exactly to confirm deletion.
+</Warning>
+
+### Available Configuration Areas
+
+From workspace settings, you can access:
+
+- **[Members](/workspace/members)** - Manage team members, roles, and invitations
+- **[Billing](/workspace/billing)** - View plan details, upgrade, and manage subscriptions
+- **[Integrations](/workspace/integrations)** - Connect third-party services and data providers
+- **API Tokens** - Generate API tokens for programmatic access
+- **Webhooks** - Configure webhooks for real-time event notifications
+
+## Technical Details
+
+For developers and technical users:
+
+- All API requests are scoped to the active workspace via the `activeOrganizationId` session field
+- Workspace procedures enforce membership validation and role-based permissions
+- Data isolation is enforced at the database query level with `workspaceId` filters
+- See `packages/api/src/index.ts` for procedure definitions: `workspaceProcedure`, `adminProcedure`, `ownerProcedure`

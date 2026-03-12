@@ -1,0 +1,318 @@
+---
+title: Search API
+description: Search across contacts, properties, and companies
+---
+
+## Overview
+
+Relio's Search API provides full-text search capabilities across your workspace data. Search across contacts, properties, and companies simultaneously, or retrieve recent records.
+
+## Global Search
+
+Perform a full-text search across contacts, properties, and companies.
+
+```typescript
+const results = await trpc.search.global.query({
+  query: "john",
+  limit: 10
+});
+
+console.log(results.contacts);   // Matching contacts
+console.log(results.properties); // Matching properties
+console.log(results.companies);  // Matching companies
+```
+
+### Parameters
+
+<ParamField query="query" type="string" required>
+  Search query (1-200 characters)
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Maximum results per entity type (1-20, default: 5)
+</ParamField>
+
+### Search Behavior
+
+**Contacts** are matched against:
+- First name (case-insensitive, partial match)
+- Last name (case-insensitive, partial match)
+- Full name (e.g., "Bobby Alv" matches firstName="Bobby" + lastName="Alv")
+
+**Properties** are matched against:
+- Address (case-insensitive, partial match)
+- City (case-insensitive, partial match)
+- MLS ID (case-insensitive, partial match)
+
+**Companies** are matched against:
+- Company name (case-insensitive, partial match)
+- Domain (case-insensitive, partial match)
+
+### Response
+
+<ResponseField name="contacts" type="array" required>
+  Array of matching contacts
+  
+  <Expandable title="Contact fields">
+    <ResponseField name="id" type="string" required>Contact ID</ResponseField>
+    <ResponseField name="firstName" type="string">First name</ResponseField>
+    <ResponseField name="lastName" type="string">Last name</ResponseField>
+    <ResponseField name="email" type="array">Email addresses</ResponseField>
+    <ResponseField name="phone" type="array">Phone numbers</ResponseField>
+    <ResponseField name="address" type="array">Addresses</ResponseField>
+    <ResponseField name="role" type="string">Contact role</ResponseField>
+    <ResponseField name="avatarUrl" type="string">Avatar URL</ResponseField>
+    <ResponseField name="lastEmailInteraction" type="timestamp">Last email interaction</ResponseField>
+    <ResponseField name="createdAt" type="timestamp" required>Creation timestamp</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="properties" type="array" required>
+  Array of matching properties
+  
+  <Expandable title="Property fields">
+    <ResponseField name="id" type="string" required>Property ID</ResponseField>
+    <ResponseField name="address" type="string">Street address</ResponseField>
+    <ResponseField name="city" type="string">City</ResponseField>
+    <ResponseField name="state" type="string">State</ResponseField>
+    <ResponseField name="status" type="string">Property status</ResponseField>
+    <ResponseField name="propertyType" type="string">Property type</ResponseField>
+    <ResponseField name="createdAt" type="timestamp" required>Creation timestamp</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="companies" type="array" required>
+  Array of matching companies
+  
+  <Expandable title="Company fields">
+    <ResponseField name="id" type="string" required>Company ID</ResponseField>
+    <ResponseField name="name" type="string" required>Company name</ResponseField>
+    <ResponseField name="domain" type="string">Company domain</ResponseField>
+    <ResponseField name="type" type="string">Company type</ResponseField>
+    <ResponseField name="createdAt" type="timestamp" required>Creation timestamp</ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Recent Records
+
+Retrieve the most recently created records across entity types. Useful for displaying an empty state before a user types a search query.
+
+```typescript
+const recent = await trpc.search.recent.query({
+  limit: 10
+});
+```
+
+### Parameters
+
+<ParamField query="limit" type="number">
+  Maximum results per entity type (1-20, default: 10)
+</ParamField>
+
+### Response
+
+Returns the same structure as global search, but sorted by `createdAt` (descending) instead of relevance.
+
+<ResponseField name="contacts" type="array" required>
+  Most recently created contacts
+</ResponseField>
+
+<ResponseField name="properties" type="array" required>
+  Most recently created properties
+</ResponseField>
+
+<ResponseField name="companies" type="array" required>
+  Most recently created companies
+</ResponseField>
+
+## Mention Search
+
+Search for items to mention in comments or activities. Returns workspace members, contacts, properties, companies, and deals.
+
+```typescript
+const mentions = await trpc.search.mentions.query({
+  query: "john"
+});
+```
+
+<Info>
+  When the query is empty, returns all workspace members but no other entities. This allows showing workspace members by default in mention pickers.
+</Info>
+
+### Parameters
+
+<ParamField query="query" type="string">
+  Search query (max 200 characters, default: empty string)
+</ParamField>
+
+### Response
+
+Returns a flat array of mention items (max 10 per entity type):
+
+```typescript
+[
+  {
+    id: "user_123",
+    label: "John Doe",
+    subLabel: "john@example.com",
+    image: "https://...",
+    type: "user"
+  },
+  {
+    id: "cm1contact456",
+    label: "John Smith",
+    subLabel: "john.smith@example.com",
+    type: "contact"
+  },
+  {
+    id: "cm1property789",
+    label: "123 Main St",
+    subLabel: "Los Angeles, CA",
+    type: "property"
+  },
+  // ...
+]
+```
+
+<ResponseField name="id" type="string" required>
+  Entity ID
+</ResponseField>
+
+<ResponseField name="label" type="string" required>
+  Primary display label (name, address, etc.)
+</ResponseField>
+
+<ResponseField name="subLabel" type="string">
+  Secondary label (email, location, etc.)
+</ResponseField>
+
+<ResponseField name="image" type="string">
+  Avatar or logo URL (only for users and contacts)
+</ResponseField>
+
+<ResponseField name="type" type="enum" required>
+  Entity type: `user`, `contact`, `property`, `company`, or `deal`
+</ResponseField>
+
+### Matching Logic
+
+**Users** (workspace members):
+- Name (case-insensitive)
+- Email (case-insensitive)
+- Shown even with empty query
+
+**Contacts**:
+- First name or last name (case-insensitive)
+- Not shown with empty query
+
+**Properties**:
+- Address or city (case-insensitive)
+- Not shown with empty query
+
+**Companies**:
+- Company name (case-insensitive)
+- Not shown with empty query
+
+**Deals**:
+- Deal name (case-insensitive)
+- Not shown with empty query
+
+## Search Performance
+
+All search queries:
+- Use PostgreSQL `ILIKE` for case-insensitive partial matching
+- Are scoped to your workspace automatically
+- Run in parallel for optimal performance
+- Respect workspace permissions
+
+## Example: Building a Search UI
+
+```typescript
+import { useState, useEffect } from 'react';
+import { trpc } from './trpc';
+
+function SearchBar() {
+  const [query, setQuery] = useState('');
+  
+  // Use recent records when query is empty
+  const { data: recentData } = trpc.search.recent.useQuery(
+    { limit: 5 },
+    { enabled: query.length === 0 }
+  );
+  
+  // Use global search when user types
+  const { data: searchData } = trpc.search.global.useQuery(
+    { query, limit: 5 },
+    { enabled: query.length > 0 }
+  );
+  
+  const results = query.length > 0 ? searchData : recentData;
+  
+  return (
+    <div>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search contacts, properties, companies..."
+      />
+      
+      {results && (
+        <div>
+          {results.contacts.length > 0 && (
+            <section>
+              <h3>Contacts</h3>
+              {results.contacts.map(contact => (
+                <div key={contact.id}>
+                  {contact.firstName} {contact.lastName}
+                </div>
+              ))}
+            </section>
+          )}
+          
+          {results.properties.length > 0 && (
+            <section>
+              <h3>Properties</h3>
+              {results.properties.map(property => (
+                <div key={property.id}>
+                  {property.address}, {property.city}
+                </div>
+              ))}
+            </section>
+          )}
+          
+          {results.companies.length > 0 && (
+            <section>
+              <h3>Companies</h3>
+              {results.companies.map(company => (
+                <div key={company.id}>
+                  {company.name}
+                </div>
+              ))}
+            </section>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Debounce user input">
+    Debounce search queries by 200-300ms to reduce API calls as users type.
+  </Accordion>
+  
+  <Accordion title="Show recent records on empty state">
+    Use `search.recent` to show recently created records before the user starts typing.
+  </Accordion>
+  
+  <Accordion title="Limit results per type">
+    Keep the limit low (5-10) for fast response times. Show a "View all" link for each entity type if needed.
+  </Accordion>
+  
+  <Accordion title="Highlight matches">
+    In your UI, highlight the matched portions of search results to help users quickly identify relevant items.
+  </Accordion>
+</AccordionGroup>

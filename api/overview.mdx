@@ -1,0 +1,208 @@
+---
+title: API Overview
+description: Learn about Relio's type-safe tRPC API architecture
+---
+
+## Introduction
+
+Relio uses [tRPC](https://trpc.io) to provide a type-safe API that offers end-to-end TypeScript type safety from your client to your server. This means you get autocomplete, inline documentation, and compile-time type checking for all API calls.
+
+## Architecture
+
+The Relio API is organized into **40+ specialized routers**, each handling a specific domain of functionality:
+
+### Core CRM Resources
+- `contacts` - Contact management and operations
+- `companies` - Company records and relationships
+- `deals` - Deal pipeline and management
+- `properties` - Property records for real estate
+- `relationships` - Relationship management between entities
+- `relatedContacts` - Related contact queries
+- `activities` - Activity tracking and history
+
+### Lists & Organization
+- `lists` - List management and membership
+- `tags` - Tagging system
+- `favorites` - Favorite items
+- `views` - Custom views and filters
+
+### Communication
+- `email` - Email operations
+- `emailTemplates` - Email template management
+- `notifications` - Notification system
+
+### Tasks & Workflow
+- `tasks` - Task management
+- `pipelines` - Pipeline configuration
+- `territories` - Territory management
+
+### Files & Attachments
+- `files` - File management
+- `attachments` - Attachment handling
+- `uploads` - File upload operations
+
+### Configuration & Customization
+- `customFields` - Custom field definitions
+- `objectAppearance` - UI customization
+- `preferences` - User preferences
+
+### Search & Data
+- `search` - Search operations
+- `geo` - Geographic data
+- `counties` - County data
+- `dashboard` - Dashboard data
+- `dataExports` - Data export operations
+
+### Workspace Management
+- `workspace` - Workspace settings
+- `workspaceApiTokens` - API token management
+- `workspaceWebhooks` - Webhook configuration
+- `billing` - Billing and subscription management
+
+### AI & Integrations
+- `ai` - AI-powered features
+- `exa` - Exa integration
+- `integrations` - Third-party integrations
+- `agentSites` - Agent site management
+
+### User & Auth
+- `user` - User account management
+- `cliAuth` - CLI authentication
+- `onboarding` - Onboarding flows
+- `help` - Help and support
+- `feedback` - Feedback submission
+
+## Base URL
+
+All API requests are made through the tRPC HTTP adapter:
+
+```
+https://app.relio.com/api/trpc
+```
+
+## Using tRPC from TypeScript
+
+For TypeScript clients, you get full type safety by importing the `AppRouter` type:
+
+```typescript
+import type { AppRouter } from "@relio-sb/api";
+import { createTRPCClient, httpBatchLink } from "@trpc/client";
+
+const client = createTRPCClient<AppRouter>({
+  links: [
+    httpBatchLink({
+      url: "https://app.relio.com/api/trpc",
+      headers: {
+        Authorization: `Bearer ${YOUR_API_TOKEN}`,
+      },
+    }),
+  ],
+});
+
+// Fully typed API calls
+const contacts = await client.contacts.list.query({
+  limit: 10,
+});
+```
+
+## Using the HTTP Adapter
+
+For non-TypeScript clients, you can use the tRPC HTTP adapter directly:
+
+```bash
+curl "https://app.relio.com/api/trpc/contacts.list?input={\"limit\":10}" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+### HTTP Request Format
+
+**Queries** use GET requests:
+```
+GET /api/trpc/{router}.{procedure}?input={json}
+```
+
+**Mutations** use POST requests:
+```
+POST /api/trpc/{router}.{procedure}
+Content-Type: application/json
+
+{json input}
+```
+
+### Batch Requests
+
+tRPC supports batching multiple requests into a single HTTP call:
+
+```bash
+curl "https://app.relio.com/api/trpc/contacts.list,contacts.getById?batch=1&input={\"0\":{\"limit\":10},\"1\":{\"id\":\"contact_123\"}}" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Response Format
+
+All tRPC responses follow this structure:
+
+```json
+{
+  "result": {
+    "data": {
+      // Your response data here
+    }
+  }
+}
+```
+
+For batched requests:
+
+```json
+[
+  {
+    "result": {
+      "data": { /* first response */ }
+    }
+  },
+  {
+    "result": {
+      "data": { /* second response */ }
+    }
+  }
+]
+```
+
+## Error Handling
+
+Errors are returned with appropriate HTTP status codes:
+
+- `400` - Bad Request (invalid input)
+- `401` - Unauthorized (missing or invalid token)
+- `403` - Forbidden (insufficient permissions)
+- `404` - Not Found
+- `429` - Too Many Requests (rate limited)
+- `500` - Internal Server Error
+
+Error response format:
+
+```json
+{
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "API token lacks read_write permission for records.",
+    "data": {
+      "code": "FORBIDDEN",
+      "httpStatus": 403,
+      "path": "contacts.create"
+    }
+  }
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/api/authentication">
+    Learn how to create and use API tokens
+  </Card>
+  <Card title="Rate Limits" icon="gauge" href="/api/rate-limits">
+    Understand rate limiting and quotas
+  </Card>
+</CardGroup>

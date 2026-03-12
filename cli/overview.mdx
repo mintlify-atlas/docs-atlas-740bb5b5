@@ -1,0 +1,65 @@
+---
+title: CLI Overview
+description: Introduction to the Relio CLI for managing authentication and interacting with Relio from the command line
+---
+
+## What is the Relio CLI
+
+The Relio CLI (`relio-cli`) is a command-line interface that enables you to authenticate with Relio, manage API credentials, and interact with your Relio workspace directly from your terminal.
+
+The `relio-cli` package includes:
+
+- **CLI command** (`relio`) for authentication and profile management
+- **SDK modules** for programmatic access:
+  - `relio-cli/client` - Client SDK for general use
+  - `relio-cli/server` - Server SDK with webhook verification
+  - `relio-cli/core` - Core utilities
+
+## Use Cases
+
+### Authentication & Profile Management
+
+The CLI provides a seamless OAuth-based login flow that stores credentials securely on your local machine. This is ideal for:
+
+- Authenticating to Relio during development
+- Managing multiple workspace profiles
+- Testing API access and permissions
+- Generating workspace API keys
+
+### Development Workflows
+
+Use the CLI to:
+
+- Quickly verify your authentication status with `relio whoami`
+- Test API connectivity with `relio auth test`
+- Switch between different workspace profiles
+- Script authentication flows in development environments
+
+### SDK Integration
+
+Once authenticated via the CLI, you can use the included SDK modules to build integrations:
+
+```typescript
+import { createRelioClient } from "relio-cli/client";
+
+const relio = createRelioClient({
+  baseUrl: "http://localhost:3000",
+  apiKey: process.env.RELIO_API_KEY!,
+});
+
+const contacts = await relio.contacts.list({ limit: 50 });
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/cli/installation">
+    Install the Relio CLI using npm, yarn, or pnpm
+  </Card>
+  <Card title="Authentication" icon="key" href="/cli/authentication">
+    Learn how to authenticate and manage profiles
+  </Card>
+  <Card title="Commands" icon="terminal" href="/cli/commands">
+    Explore all available CLI commands
+  </Card>
+</CardGroup>

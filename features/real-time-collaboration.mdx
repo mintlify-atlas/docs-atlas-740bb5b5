@@ -1,0 +1,374 @@
+---
+title: Real-Time Collaboration
+description: See who's online, collaborate on records in real-time, and stay synchronized with your team
+---
+
+Relio's real-time collaboration features help teams work together seamlessly with live presence indicators, cell locking, and instant activity updates.
+
+## Workspace Presence
+
+See who's currently online in your workspace at a glance.
+
+### Online Users Stack
+
+The top bar displays avatars of all team members currently online in your workspace. Each user is assigned a unique color that persists across sessions for consistent identification.
+
+<Info>
+User colors are automatically assigned based on a consistent hash of the user ID, ensuring the same user always gets the same color.
+</Info>
+
+### Presence States
+
+The presence system tracks multiple dimensions of user activity:
+
+```typescript
+interface WorkspacePresence {
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+  color: string; // hex color for this user
+  
+  // Navigation
+  currentPage: string | null; // e.g. "contacts", "deals"
+  
+  // Grid interactions
+  focusedCell: { rowId: string; columnId: string } | null;
+  editingCell: { rowId: string; columnId: string } | null;
+  
+  // Detail page interactions
+  focusedField: { recordId: string; fieldName: string } | null;
+  viewingRecord: { recordId: string; objectType: string } | null;
+  
+  // Activity composition
+  typingIn: { recordId: string; editorType: "activity" | "reply" } | null;
+  
+  onlineAt: string;
+}
+```
+
+From `COLLABORATION.md:23-36`
+
+## Grid Collaboration
+
+See exactly what cells your teammates are viewing and editing in real-time.
+
+### Cell Focus Indicators
+
+When a teammate focuses on a grid cell, you'll see:
+- A colored border around the cell (using their assigned color)
+- A name tag in the top-right corner showing who's viewing it
+- Support for multiple users on the same cell
+
+### Cell Locking
+
+When another user is actively **editing** a cell (not just viewing it), that cell becomes locked:
+
+<Steps>
+  <Step title="Lock Detection">
+    A small lock icon appears in the bottom-left corner of the cell
+  </Step>
+  
+  <Step title="Edit Prevention">
+    Double-clicking the cell or pressing Enter will not activate edit mode
+  </Step>
+  
+  <Step title="Visual Feedback">
+    The lock icon and user's colored border clearly indicate who's editing
+  </Step>
+</Steps>
+
+<Note>
+Cells are only locked when actively being edited, not just focused. This allows teammates to browse data freely while preventing conflicting edits.
+</Note>
+
+From `COLLABORATION.md:236-250`
+
+### Implementation Example
+
+The grid automatically broadcasts presence when cells are focused:
+
+```typescript
+// From RecordTable.tsx
+useEffect(() => {
+  if (focusedCell) {
+    updateFocusedCell({
+      rowId: rows[focusedCell.rowIdx].id,
+      columnId: focusedCell.columnKey as string,
+    });
+  } else {
+    updateFocusedCell(null);
+  }
+}, [focusedCell]);
+```
+
+## Record Detail Collaboration
+
+When viewing a record detail page (contact, property, company, or deal), you'll see real-time indicators of other team members' activity.
+
+### "Also Viewing" Indicator
+
+At the top of each record detail page, an avatar stack shows all other users currently viewing the same record:
+
+```tsx
+import { RecordViewersStack } from "@/components/records/record-viewers-stack";
+
+<RecordViewersStack recordId={contact.id} />
+```
+
+From `COLLABORATION.md:101-117`
+
+### Field-Level Presence
+
+When a teammate is editing a specific field, you'll see:
+- A colored ring around the field (in their user color)
+- A small badge with their name
+- A lock icon if they're actively editing
+
+#### Field Locking
+
+Just like grid cells, fields lock when another user is editing them:
+
+```tsx
+// Fields automatically show lock state
+<InlineFieldEditor
+  value={record.description}
+  onSave={handleSave}
+  presenceRecordId={record.id}
+  presenceFieldName="description"
+/>
+```
+
+From `COLLABORATION.md:174-186`
+
+<Warning>
+When a field is locked by another user, you cannot enter edit mode until they finish editing. This prevents conflicting changes and data loss.
+</Warning>
+
+## Typing Indicators
+
+See when teammates are composing notes, calls, or replies in real-time.
+
+### Activity Editors
+
+When a teammate is typing in an activity editor (notes, calls) or composing a reply, you'll see an animated "typing..." indicator:
+
+```tsx
+import { TypingIndicator } from "@/components/records/typing-indicator";
+
+<TypingIndicator recordId={contact.id} editorType="activity" />
+```
+
+The indicator shows:
+- The user's name and avatar
+- An animated ellipsis to indicate active typing
+- Automatic debouncing (updates every 300ms to reduce network traffic)
+
+From `COLLABORATION.md:187-202`
+
+### Implementation Detail
+
+Typing presence is automatically broadcast by activity editors:
+
+```typescript
+// From activity-editor.tsx
+const editor = useEditor({
+  onUpdate: () => {
+    if (editor?.getText().trim()) {
+      updateTypingIn({
+        recordId: props.recordId,
+        editorType: "activity"
+      });
+    } else {
+      updateTypingIn(null);
+    }
+  }
+});
+```
+
+## Live Activity Updates
+
+Activity feeds update in real-time across all users viewing the same record.
+
+### Automatic Feed Refresh
+
+When any user creates, updates, or deletes an activity:
+1. Their client broadcasts an event on the workspace channel
+2. All other clients receive the event
+3. The activity feed automatically refreshes to show the change
+
+### Optimistic Insertion
+
+New activities appear instantly for all users without a full refetch:
+
+```typescript
+// From workspace-presence-context.tsx
+if (payload.action === "activity_created") {
+  // Optimistically insert into local cache
+  queryClient.setQueriesData(
+    { queryKey: [["activities"]] },
+    (old) => {
+      // Insert new activity at the top
+      return [payload.activity, ...old];
+    }
+  );
+}
+```
+
+From `COLLABORATION.md:145-163`
+
+### Covered Events
+
+- ✅ User-created notes and calls
+- ✅ Dialog-created activities
+- ✅ Email activities
+- ✅ Replies on activities
+- ✅ Emoji reactions
+- ✅ Resolve/unresolve status changes
+- ✅ Activity deletions
+- ✅ Server-side auto-activities (record create/update, links, tags)
+
+From `COLLABORATION.md:164-173`
+
+## Server-Side Broadcasting
+
+Activities created by server-side mutations (not direct user actions) are also broadcast in real-time.
+
+### Automatic Activity Events
+
+When records are created, updated, linked, or tagged, the server automatically broadcasts activity events:
+
+```typescript
+// From record-activity.ts
+import { broadcastActivity } from "./supabase-broadcast";
+
+const activity = await createActivity({
+  type: "record_created",
+  recordId: record.id
+});
+
+// Broadcast to all workspace users
+await broadcastActivity(workspaceId, {
+  action: "activity_created",
+  activity
+});
+```
+
+From `COLLABORATION.md:216-234`
+
+## Technical Architecture
+
+### Supabase Realtime
+
+Relio uses Supabase Realtime Presence for all collaboration features:
+
+- **Channel per workspace**: `workspace:{orgSlug}`
+- **Presence key**: User ID (one entry per user)
+- **Transport**: WebSocket with automatic reconnection
+- **Graceful degradation**: All features work without Realtime (no-ops)
+
+From `COLLABORATION.md:9-21`
+
+### React Context
+
+The `WorkspacePresenceProvider` wraps the app layout and exposes collaboration hooks:
+
+```tsx
+import { usePresence } from "@/contexts/workspace-presence-context";
+
+const { onlineUsers, updateFocusedCell, updateViewingRecord } = usePresence();
+```
+
+### Hooks
+
+<CardGroup cols={2}>
+  <Card title="usePresence" icon="users">
+    Main hook for all presence functionality
+  </Card>
+  
+  <Card title="useFieldPresence" icon="input-text">
+    Get users editing a specific field
+  </Card>
+  
+  <Card title="useTypingPresence" icon="keyboard">
+    Get users typing in a specific editor
+  </Card>
+  
+  <Card title="usePresenceSafe" icon="shield">
+    Safe version that returns null outside provider
+  </Card>
+</CardGroup>
+
+## Debugging & Edge Cases
+
+### React Strict Mode Fix
+
+Relio handles React Strict Mode's double-mount behavior by synchronously cleaning up stale Supabase channels:
+
+```typescript
+// On mount: remove any existing channel before creating new one
+const existing = supabase.getChannels();
+const idx = existing.findIndex(ch => ch.topic === `workspace:${orgSlug}`);
+if (idx >= 0) {
+  const stale = existing[idx];
+  void stale.unsubscribe();
+  existing.splice(idx, 1); // Synchronous removal
+}
+
+const channel = supabase.channel(`workspace:${orgSlug}`);
+```
+
+From `COLLABORATION.md:276-333`
+
+### Stable User List
+
+The `OnlineUsersStack` component uses a 2-second grace period to prevent flickering during reconnects:
+
+```typescript
+const [stableUsers, setStableUsers] = useState(users);
+
+useEffect(() => {
+  if (users.length > 0) {
+    setStableUsers(users); // Immediate update when users appear
+  } else {
+    const timer = setTimeout(() => setStableUsers([]), 2000);
+    return () => clearTimeout(timer);
+  }
+}, [users]);
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Respect locked fields">
+    When you see a lock icon, wait for your teammate to finish editing. Forcing an edit could cause data conflicts.
+  </Accordion>
+
+  <Accordion title="Use presence awareness">
+    Check the "Also viewing" indicator before making significant changes to a record someone else is viewing.
+  </Accordion>
+
+  <Accordion title="Coordinate on complex edits">
+    For major record updates, communicate with teammates shown in the presence indicators to avoid conflicts.
+  </Accordion>
+
+  <Accordion title="Watch typing indicators">
+    If someone is typing a note or reply, wait a moment before adding your own to avoid duplicate information.
+  </Accordion>
+</AccordionGroup>
+
+## Environment Setup
+
+Collaboration features require optional Supabase environment variables:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+
+# Server-side (for broadcasting)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+<Info>
+If Supabase env vars are not set, all collaboration features gracefully degrade to no-ops. The app works perfectly without them.
+</Info>

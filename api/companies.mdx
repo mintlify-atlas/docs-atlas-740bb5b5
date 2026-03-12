@@ -1,0 +1,202 @@
+---
+title: Companies API
+description: Manage companies in your Relio workspace
+---
+
+## companies.list()
+
+List companies with filtering and pagination.
+
+<ParamField path="limit" type="number" default="50">
+  Maximum number of companies to return
+</ParamField>
+
+<ParamField path="cursor" type="string">
+  Pagination cursor
+</ParamField>
+
+<ParamField path="offset" type="number">
+  Offset-based pagination
+</ParamField>
+
+<ParamField path="search" type="string">
+  Search by company name or domain
+</ParamField>
+
+<ParamField path="type" type="string">
+  Filter by company type
+</ParamField>
+
+<ParamField path="city" type="string">
+  Filter by city
+</ParamField>
+
+<ParamField path="listId" type="string">
+  Filter by list ID
+</ParamField>
+
+<ParamField path="tagIds" type="string[]">
+  Filter by tag IDs
+</ParamField>
+
+<ParamField path="sort" type="object">
+  Sort configuration
+  - `field`: name, type, city, or createdAt
+  - `direction`: asc or desc
+</ParamField>
+
+<ResponseField name="items" type="Company[]">
+  Array of company objects
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string | null">
+  Cursor for next page
+</ResponseField>
+
+<ResponseField name="total" type="number">
+  Total count
+</ResponseField>
+
+```typescript
+const companies = await trpc.companies.list.query({
+  limit: 25,
+  search: "acme",
+  type: "customer"
+});
+```
+
+## companies.create()
+
+Create a new company.
+
+<ParamField path="name" type="string" required>
+  Company name
+</ParamField>
+
+<ParamField path="domain" type="string">
+  Company domain
+</ParamField>
+
+<ParamField path="website" type="string">
+  Company website
+</ParamField>
+
+<ParamField path="description" type="string">
+  Company description
+</ParamField>
+
+<ParamField path="type" type="string">
+  Company type
+</ParamField>
+
+<ParamField path="city" type="string">
+  City
+</ParamField>
+
+<ParamField path="email" type="string">
+  Contact email
+</ParamField>
+
+<ParamField path="phone" type="string">
+  Contact phone
+</ParamField>
+
+<ParamField path="linkedIn" type="string">
+  LinkedIn URL
+</ParamField>
+
+<ParamField path="categories" type="string[]">
+  Industry categories
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Company ID
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Company name
+</ResponseField>
+
+<ResponseField name="createdAt" type="Date">
+  Creation timestamp
+</ResponseField>
+
+```typescript
+const company = await trpc.companies.create.mutate({
+  name: "Acme Corp",
+  domain: "acme.com",
+  type: "customer",
+  description: "Leading widget manufacturer"
+});
+```
+
+## companies.update()
+
+Update an existing company.
+
+<ParamField path="id" type="string" required>
+  Company ID
+</ParamField>
+
+<ParamField path="name" type="string">
+  Company name
+</ParamField>
+
+<ParamField path="domain" type="string">
+  Domain
+</ParamField>
+
+<ParamField path="description" type="string">
+  Description
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Company ID
+</ResponseField>
+
+<ResponseField name="updatedAt" type="Date">
+  Update timestamp
+</ResponseField>
+
+```typescript
+const updated = await trpc.companies.update.mutate({
+  id: "clx123...",
+  type: "partner"
+});
+```
+
+## companies.delete()
+
+Delete a company. Requires admin role.
+
+<ParamField path="id" type="string" required>
+  Company ID
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Deleted company ID
+</ResponseField>
+
+```typescript
+const deleted = await trpc.companies.delete.mutate("clx123...");
+```
+
+## companies.enrich()
+
+Enrich a company with data from Firecrawl.
+
+<ParamField path="id" type="string" required>
+  Company ID
+</ParamField>
+
+<ResponseField name="company" type="Company">
+  Enriched company object
+</ResponseField>
+
+<ResponseField name="enrichedFields" type="string[]">
+  Fields that were enriched
+</ResponseField>
+
+```typescript
+const enriched = await trpc.companies.enrich.mutate({ id: "clx123..." });
+```

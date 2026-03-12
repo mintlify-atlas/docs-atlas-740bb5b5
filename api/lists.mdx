@@ -1,0 +1,174 @@
+---
+title: Lists API
+description: Manage lists and collections in your Relio workspace
+---
+
+## lists.list()
+
+Get all lists in the workspace.
+
+<ResponseField name="lists" type="List[]">
+  Array of list objects with item counts
+  - `id`: List ID
+  - `name`: List name
+  - `emoji`: List emoji
+  - `color`: List color
+  - `objectType`: Type of objects (contact, property, company, deal)
+  - `itemCount`: Number of items in list
+</ResponseField>
+
+```typescript
+const lists = await trpc.lists.list.query();
+```
+
+## lists.create()
+
+Create a new list.
+
+<ParamField path="name" type="string" required>
+  List name
+</ParamField>
+
+<ParamField path="objectType" type="string" required>
+  Object type (contact, property, company, or deal)
+</ParamField>
+
+<ParamField path="emoji" type="string">
+  List emoji
+</ParamField>
+
+<ParamField path="color" type="string">
+  List color
+</ParamField>
+
+<ParamField path="description" type="string">
+  List description
+</ParamField>
+
+<ParamField path="type" type="string">
+  List type (static or smart)
+</ParamField>
+
+<ParamField path="isPipeline" type="boolean">
+  Whether this is a pipeline with stages
+</ParamField>
+
+<ParamField path="stages" type="array">
+  Pipeline stages (if isPipeline is true)
+</ParamField>
+
+<ResponseField name="id" type="string">
+  List ID
+</ResponseField>
+
+```typescript
+const list = await trpc.lists.create.mutate({
+  name: "Hot Prospects",
+  objectType: "contact",
+  emoji: "🔥",
+  color: "red"
+});
+```
+
+## lists.addItem()
+
+Add an item to a list.
+
+<ParamField path="listId" type="string" required>
+  List ID
+</ParamField>
+
+<ParamField path="contactId" type="string">
+  Contact ID (for contact lists)
+</ParamField>
+
+<ParamField path="propertyId" type="string">
+  Property ID (for property lists)
+</ParamField>
+
+<ParamField path="companyId" type="string">
+  Company ID (for company lists)
+</ParamField>
+
+<ParamField path="dealId" type="string">
+  Deal ID (for deal lists)
+</ParamField>
+
+<ParamField path="stageId" type="string">
+  Stage ID (for pipeline lists)
+</ParamField>
+
+<ParamField path="order" type="number">
+  Item order
+</ParamField>
+
+<ResponseField name="id" type="string">
+  List item ID
+</ResponseField>
+
+```typescript
+const item = await trpc.lists.addItem.mutate({
+  listId: "clx_list_123",
+  contactId: "clx_contact_456"
+});
+```
+
+## lists.removeItem()
+
+Remove an item from a list.
+
+<ParamField path="id" type="string" required>
+  List item ID
+</ParamField>
+
+```typescript
+const removed = await trpc.lists.removeItem.mutate({
+  id: "clx_item_789"
+});
+```
+
+## lists.bulkAddItems()
+
+Add multiple items to a list at once.
+
+<ParamField path="listId" type="string" required>
+  List ID
+</ParamField>
+
+<ParamField path="entityIds" type="string[]" required>
+  Array of entity IDs to add
+</ParamField>
+
+<ResponseField name="inserted" type="number">
+  Number of items inserted
+</ResponseField>
+
+```typescript
+const result = await trpc.lists.bulkAddItems.mutate({
+  listId: "clx_list_123",
+  entityIds: ["clx_contact_1", "clx_contact_2", "clx_contact_3"]
+});
+```
+
+## lists.bulkRemoveItems()
+
+Remove multiple items from a list.
+
+<ParamField path="listId" type="string" required>
+  List ID
+</ParamField>
+
+<ParamField path="entityIds" type="string[]" required>
+  Array of entity IDs to remove
+</ParamField>
+
+<ResponseField name="removed" type="number">
+  Number of items removed
+</ResponseField>
+
+```typescript
+const result = await trpc.lists.bulkRemoveItems.mutate({
+  listId: "clx_list_123",
+  entityIds: ["clx_contact_1", "clx_contact_2"]
+});
+```

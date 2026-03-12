@@ -1,0 +1,238 @@
+---
+title: Commands Reference
+description: Complete reference for all Relio CLI commands
+---
+
+## relio login
+
+Authenticate with a Relio workspace using OAuth device flow.
+
+```bash
+relio login [options]
+```
+
+### Options
+
+| Flag | Description | Default |
+|------|-------------|----------|
+| `-s, --server <url>` | Relio server URL | `RELIO_SERVER_URL` or `http://localhost:3000` |
+| `--profile <name>` | Profile name to store credentials under | `default` |
+| `--client-name <name>` | Name shown on the approval screen | - |
+| `--token-name <name>` | Name for the created workspace API key | - |
+| `--expires-in <seconds>` | Device code expiry time | - |
+| `--no-open` | Skip opening the browser automatically | `false` |
+
+### Examples
+
+**Basic login:**
+```bash
+relio login
+```
+
+**Login to a specific server:**
+```bash
+relio login --server https://app.relio.com
+```
+
+**Login with a custom profile:**
+```bash
+relio login --profile production --token-name "Production CLI Access"
+```
+
+**Login without auto-opening browser:**
+```bash
+relio login --no-open
+```
+
+---
+
+## relio whoami
+
+Display identity and authentication information for the current profile.
+
+```bash
+relio whoami [options]
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--profile <name>` | Use a specific profile instead of the active one |
+
+### Examples
+
+**Check current profile:**
+```bash
+relio whoami
+```
+
+Example output:
+```json
+{
+  "workspace": {
+    "id": "ws_abc123",
+    "name": "My Workspace"
+  },
+  "user": {
+    "id": "user_xyz789",
+    "email": "you@example.com"
+  }
+}
+```
+
+**Check a specific profile:**
+```bash
+relio whoami --profile production
+```
+
+---
+
+## relio auth test
+
+Validate that the current profile's API key is accepted by the server.
+
+```bash
+relio auth test [options]
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--profile <name>` | Use a specific profile instead of the active one |
+
+### Examples
+
+**Test current profile:**
+```bash
+relio auth test
+```
+
+Example output:
+```
+✓ Authentication successful
+API key is valid for workspace: My Workspace
+```
+
+**Test a specific profile:**
+```bash
+relio auth test --profile staging
+```
+
+---
+
+## relio logout
+
+Remove credentials for one or more profiles.
+
+```bash
+relio logout [options]
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--profile <name>` | Logout a specific profile |
+| `--all` | Remove all saved profiles |
+
+### Examples
+
+**Logout current profile:**
+```bash
+relio logout
+```
+
+**Logout a specific profile:**
+```bash
+relio logout --profile staging
+```
+
+**Remove all profiles:**
+```bash
+relio logout --all
+```
+
+---
+
+## relio profiles list
+
+Display all saved authentication profiles.
+
+```bash
+relio profiles list
+```
+
+### Example Output
+
+```
+* default (active)
+  production
+  staging
+```
+
+The asterisk (*) indicates the currently active profile.
+
+---
+
+## relio profiles use
+
+Set a different profile as the active profile.
+
+```bash
+relio profiles use <name>
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `<name>` | The profile name to activate |
+
+### Examples
+
+**Switch to production profile:**
+```bash
+relio profiles use production
+```
+
+Example output:
+```
+✓ Switched to profile: production
+```
+
+**Switch to staging profile:**
+```bash
+relio profiles use staging
+```
+
+---
+
+## Configuration
+
+All profiles and credentials are stored in:
+
+```
+~/.config/relio/config.json
+```
+
+This file contains sensitive API keys. Keep it secure and never commit it to version control.
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `RELIO_SERVER_URL` | Default server URL for login command |
+| `RELIO_API_KEY` | API key for SDK usage (alternative to CLI profiles) |
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Authentication Guide" icon="key" href="/cli/authentication">
+    Learn about the login flow and profile management
+  </Card>
+  <Card title="SDK Documentation" icon="code" href="/api/overview">
+    Use the Relio SDK in your applications
+  </Card>
+</CardGroup>

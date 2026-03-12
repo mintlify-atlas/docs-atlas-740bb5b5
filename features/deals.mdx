@@ -1,0 +1,344 @@
+---
+title: Deal Pipeline
+description: Track opportunities, manage deal stages, and close more transactions
+---
+
+## Overview
+
+Deals represent sales opportunities and transactions in your pipeline. Track deal progress through customizable stages, associate contacts and properties, and forecast revenue.
+
+<CardGroup cols={2}>
+  <Card title="Pipeline Stages" icon="diagram-next">
+    Move deals through qualification, proposal, negotiation, and closing stages
+  </Card>
+  <Card title="Deal Associations" icon="link">
+    Link deals to contacts, companies, and properties
+  </Card>
+  <Card title="Revenue Tracking" icon="sack-dollar">
+    Track deal value, probability, and expected close dates
+  </Card>
+  <Card title="Sharing & Permissions" icon="lock">
+    Control who can view and edit each deal
+  </Card>
+</CardGroup>
+
+## Creating Deals
+
+<Steps>
+  <Step title="Name your deal">
+    Required field:
+    - `name` - Deal name or identifier
+    
+    Optional:
+    - `emoji` - Add an emoji for quick visual identification
+  </Step>
+  
+  <Step title="Set pipeline and stage">
+    Organize the deal:
+    - `pipelineId` - Which pipeline this deal belongs to
+    - `stageId` - Current stage in the pipeline
+    - `stage` - Legacy stage enum (being migrated)
+    
+    <Note>
+      Relio supports custom pipelines. Each deal belongs to one pipeline and one stage within that pipeline.
+    </Note>
+  </Step>
+  
+  <Step title="Add financial details">
+    Track deal value:
+    - `value` - Deal value in cents
+    - `probability` - Win probability (0-100)
+    - `expectedCloseDate` - Target close date
+    - `closedAt` - Actual close date (when won/lost)
+  </Step>
+  
+  <Step title="Link related records">
+    Associate the deal with:
+    - `contactId` - Primary contact
+    - `propertyId` - Property being transacted
+    - `companyId` - Company involved
+    - `ownerId` - Deal owner (team member)
+  </Step>
+  
+  <Step title="Set visibility and permissions">
+    Control access:
+    - `visibility` - `private`, `workspace`, `selected_users`
+    - `workspaceAccessLevel` - `no_access`, `view`, `full_access`
+  </Step>
+</Steps>
+
+## Deal Fields Reference
+
+### Basic Information
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | text | Deal name (required) |
+| `emoji` | text | Emoji icon for quick identification |
+| `description` | text | Deal notes and details |
+
+### Pipeline & Stage
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `pipelineId` | text | Reference to deal_pipelines.id |
+| `stageId` | text | Reference to deal_pipeline_stages.id |
+| `stage` | enum | Legacy stage (being phased out) |
+| `stageEnteredAt` | timestamp | When deal entered current stage |
+
+**Legacy Stage Values** (being migrated to custom pipelines):
+- `qualification` - Initial qualification
+- `proposal` - Proposal sent
+- `negotiation` - Active negotiations
+- `under_contract` - Contract signed
+- `due_diligence` - Due diligence period
+- `closing` - Final closing process
+- `closed_won` - Deal won
+- `closed_lost` - Deal lost
+
+<Info>
+  Relio is transitioning from fixed stage enums to custom pipelines. You can create multiple pipelines with custom stages tailored to different deal types.
+</Info>
+
+### Financial Details
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `value` | integer | Deal value in cents |
+| `probability` | integer | Win probability percentage (0-100) |
+| `expectedCloseDate` | timestamp | Projected close date |
+| `closedAt` | timestamp | Actual close date |
+
+<Note>
+  Deal value is stored in cents. Convert to dollars by dividing by 100.
+</Note>
+
+### Associations
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `contactId` | text | Primary contact (references contacts.id) |
+| `propertyId` | text | Associated property (references properties.id) |
+| `companyId` | text | Associated company (references companies.id) |
+| `ownerId` | text | Deal owner (references user.id) |
+
+### Sharing & Permissions
+
+| Field | Type | Values |
+|-------|------|--------|
+| `visibility` | enum | `private`, `workspace`, `selected_users` |
+| `workspaceAccessLevel` | enum | `no_access`, `view`, `full_access` |
+
+**Visibility Options**:
+- `private` - Only owner can see
+- `workspace` - All workspace members (respects workspaceAccessLevel)
+- `selected_users` - Specific users via dealShares table
+
+**Access Levels**:
+- `no_access` - Cannot view
+- `view` - Read-only access
+- `full_access` - Can edit and manage
+
+<Tip>
+  Use `selected_users` visibility with the Deal Shares feature to grant specific team members access to sensitive deals.
+</Tip>
+
+## Deal Stages and Pipelines
+
+Relio supports custom deal pipelines:
+
+<Steps>
+  <Step title="Create pipelines">
+    Set up pipelines for different deal types (e.g., "Buyer Transactions", "Seller Listings", "Leasing")
+  </Step>
+  
+  <Step title="Define stages">
+    Each pipeline has custom stages that match your workflow
+  </Step>
+  
+  <Step title="Track progress">
+    Move deals through stages as they progress
+  </Step>
+  
+  <Step title="Monitor timing">
+    The `stageEnteredAt` field tracks how long deals spend in each stage
+  </Step>
+</Steps>
+
+## Deal Sharing
+
+For deals with `visibility: "selected_users"`, use the **dealShares** table to grant access:
+
+```typescript
+// Deal Shares table structure
+{
+  dealId: "deal_xyz",
+  userId: "user_abc",
+  accessLevel: "full_access", // or "view"
+  sharedBy: "user_owner",
+  createdAt: "2024-01-15T10:00:00Z"
+}
+```
+
+Each share:
+- Links a user to a deal
+- Defines their access level
+- Tracks who granted access
+- Unique constraint prevents duplicate shares
+
+<Info>
+  Deal shares cascade delete when deals or users are removed, automatically cleaning up access permissions.
+</Info>
+
+## Probability-Weighted Forecasting
+
+Use the `probability` field for revenue forecasting:
+
+```typescript
+const weightedValue = (deal.value / 100) * (deal.probability / 100);
+```
+
+Example:
+- Deal value: $500,000 (50000000 cents)
+- Probability: 60%
+- Weighted forecast: $300,000
+
+<Card title="Reporting" icon="chart-line">
+  Build weighted pipeline reports to forecast expected revenue by close date
+</Card>
+
+## Deal Associations
+
+Link deals to multiple record types:
+
+### Contact Association
+The primary decision-maker or stakeholder:
+```json
+{
+  "contactId": "contact_xyz",
+  "name": "Office Building Acquisition - Acme Corp"
+}
+```
+
+### Property Association
+The property being bought, sold, or leased:
+```json
+{
+  "propertyId": "prop_abc",
+  "name": "123 Main St Sale"
+}
+```
+
+### Company Association
+The company involved in the transaction:
+```json
+{
+  "companyId": "company_def",
+  "name": "Acme Corp - Portfolio Acquisition"
+}
+```
+
+<Note>
+  All associations are optional and set to null if the linked record is deleted.
+</Note>
+
+## Indexing and Performance
+
+Deals are indexed for fast queries:
+- **Workspace + Stage** - Pipeline views
+- **Workspace + Pipeline** - Filter by pipeline
+- **Workspace + Owner** - My deals
+- **Contact/Property/Company** - Related deals
+
+## Deal Lifecycle Example
+
+<Steps>
+  <Step title="New opportunity identified">
+    ```json
+    {
+      "name": "Sunset Plaza Acquisition",
+      "pipelineId": "pipeline_commercial",
+      "stageId": "stage_qualification",
+      "value": 500000000,
+      "probability": 20,
+      "contactId": "contact_buyer",
+      "propertyId": "prop_sunset_plaza",
+      "visibility": "workspace"
+    }
+    ```
+  </Step>
+  
+  <Step title="Move to proposal">
+    Update stage and increase probability:
+    ```json
+    {
+      "stageId": "stage_proposal",
+      "probability": 40,
+      "stageEnteredAt": "2024-02-01T14:30:00Z"
+    }
+    ```
+  </Step>
+  
+  <Step title="Enter negotiations">
+    ```json
+    {
+      "stageId": "stage_negotiation",
+      "probability": 60,
+      "expectedCloseDate": "2024-04-15T00:00:00Z"
+    }
+    ```
+  </Step>
+  
+  <Step title="Close the deal">
+    ```json
+    {
+      "stageId": "stage_closed_won",
+      "probability": 100,
+      "closedAt": "2024-04-10T16:00:00Z"
+    }
+    ```
+  </Step>
+</Steps>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Update probability as deals progress">
+    Adjust the `probability` field at each stage to improve forecast accuracy. Higher stages should generally have higher probabilities.
+  </Accordion>
+  
+  <Accordion title="Set expected close dates">
+    Always provide `expectedCloseDate` for pipeline forecasting and calendar planning.
+  </Accordion>
+  
+  <Accordion title="Use appropriate visibility settings">
+    Keep sensitive deals `private` or share with `selected_users` only. Use `workspace` visibility for team collaboration.
+  </Accordion>
+  
+  <Accordion title="Track stage timing">
+    Monitor `stageEnteredAt` to identify bottlenecks in your pipeline and optimize deal velocity.
+  </Accordion>
+  
+  <Accordion title="Link all related records">
+    Associate deals with contacts, properties, and companies for complete context and relationship mapping.
+  </Accordion>
+  
+  <Accordion title="Archive lost deals">
+    Move lost deals to `closed_lost` stage rather than deleting them to maintain historical data for analysis.
+  </Accordion>
+</AccordionGroup>
+
+## Custom Pipelines
+
+Create multiple pipelines for different transaction types:
+
+- **Buyer Pipeline**: Stages for buyer acquisition process
+- **Seller Pipeline**: Stages for listing and selling
+- **Leasing Pipeline**: Stages for lease transactions
+- **Investment Pipeline**: Stages for property acquisitions
+
+Each pipeline can have unique stages tailored to that workflow.
+
+<Note>
+Custom pipelines can be created and managed through the workspace settings. Contact your workspace administrator to create additional pipelines for different transaction types.
+</Note>

@@ -1,0 +1,82 @@
+---
+title: Installation
+description: Install the Relio CLI using npm, yarn, or pnpm
+---
+
+## Install the CLI
+
+The Relio CLI is distributed as an npm package named `relio-cli`. You can install it globally to use the `relio` command from anywhere, or locally within a specific project.
+
+### Global Installation
+
+Install the CLI globally to make the `relio` command available system-wide:
+
+<CodeGroup>
+```bash npm
+npm install -g relio-cli
+```
+
+```bash yarn
+yarn global add relio-cli
+```
+
+```bash pnpm
+pnpm add -g relio-cli
+```
+</CodeGroup>
+
+After global installation, verify it's working:
+
+```bash
+relio --help
+```
+
+### Local Installation
+
+For project-specific usage, install the CLI as a development dependency:
+
+<CodeGroup>
+```bash npm
+npm install --save-dev relio-cli
+```
+
+```bash yarn
+yarn add --dev relio-cli
+```
+
+```bash pnpm
+pnpm add -D relio-cli
+```
+</CodeGroup>
+
+With local installation, run commands via npx or package.json scripts:
+
+```bash
+npx relio login
+```
+
+Or add to your `package.json`:
+
+```json
+{
+  "scripts": {
+    "relio:login": "relio login"
+  }
+}
+```
+
+## Verify Installation
+
+Confirm the CLI is installed correctly:
+
+```bash
+relio --version
+```
+
+You should see the current version (e.g., `0.1.1`).
+
+## Next Steps
+
+<Card title="Authenticate with Relio" icon="key" href="/cli/authentication">
+  Log in to your Relio workspace and manage authentication profiles
+</Card>

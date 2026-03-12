@@ -1,0 +1,338 @@
+---
+title: Property Management
+description: Track properties, parcel data, ownership, and sale history in your CRM
+---
+
+## Overview
+
+Properties are central to real estate CRM. Relio provides comprehensive property tracking with parcel mapping, ownership data, sale history, and automatic enrichment from county assessor records.
+
+<CardGroup cols={2}>
+  <Card title="Parcel Data" icon="map">
+    View property boundaries, parcel IDs, and geographic data on interactive maps
+  </Card>
+  <Card title="Sale History" icon="clock-rotate-left">
+    Track previous sales, prices, and ownership transfers
+  </Card>
+  <Card title="Owner Information" icon="user-tie">
+    See current and previous owners with mailing addresses
+  </Card>
+  <Card title="Property Details" icon="house-building">
+    Store comprehensive property characteristics from assessor data
+  </Card>
+</CardGroup>
+
+## Creating Properties
+
+<Steps>
+  <Step title="Enter property address">
+    The only required field:
+    - `address` - Street address
+    
+    Optional location fields:
+    - `city`, `state`, `zip`, `country`
+    - `latitude`, `longitude` - Auto-populated from geocoding
+  </Step>
+  
+  <Step title="Set property type and status">
+    Classify the property:
+    - `propertyType` - `residential`, `commercial`, `land`, `industrial`, `multi_family`
+    - `status` - `active`, `under_contract`, `sold`, `off_market`, `for_lease`
+  </Step>
+  
+  <Step title="Add property characteristics">
+    Basic property details:
+    - `bedrooms` - Number of bedrooms
+    - `bathrooms` - Number of bathrooms (decimal, e.g., 2.5)
+    - `sqft` - Interior square footage
+    - `lotSqft` - Lot size in square feet
+    - `units` - Number of units (for multi-family)
+    - `yearBuilt` - Year of construction
+  </Step>
+  
+  <Step title="Enter pricing and financial data">
+    All monetary values stored in cents:
+    - `listPrice` - Current listing price
+    - `soldPrice` - Final sale price
+    - `estimatedValue` - Estimated market value
+    - `equity` - Equity percentage (0-100+)
+    - `capRate` - Capitalization rate percentage
+  </Step>
+  
+  <Step title="Add parcel identifiers">
+    Link to county records:
+    - `parcelId` - County parcel ID
+    - `apn` - Assessor's Parcel Number
+    - `llUuid` - Regrid universal parcel identifier
+    - `mlsId` - MLS listing number
+  </Step>
+</Steps>
+
+<Info>
+  When you provide a parcel ID or address, Relio can automatically enrich the property with county assessor data.
+</Info>
+
+## Property Fields Reference
+
+### Location & Identification
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `address` | text | Street address (required) |
+| `city` | text | City |
+| `state` | text | State/province |
+| `zip` | text | Postal code |
+| `country` | text | Country |
+| `county` | text | County name |
+| `countyFips` | text | County FIPS code |
+| `latitude` | double | Latitude coordinate |
+| `longitude` | double | Longitude coordinate |
+| `geom` | geometry | PostGIS point geometry |
+| `geomBoundary` | jsonb | Parcel boundary as GeoJSON |
+
+### Classification
+
+| Field | Type | Values |
+|-------|------|--------|
+| `propertyType` | enum | `residential`, `commercial`, `land`, `industrial`, `multi_family` |
+| `status` | enum | `active`, `under_contract`, `sold`, `off_market`, `for_lease` |
+
+### Pricing (all in cents)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `listPrice` | bigint | Current listing price |
+| `soldPrice` | bigint | Final sale price |
+| `estimatedValue` | bigint | Estimated market value |
+| `assessedTotalValue` | bigint | Total assessed value |
+| `assessedLandValue` | bigint | Assessed land value |
+| `assessedImprovementValue` | bigint | Assessed improvement value |
+| `marketTotalValue` | bigint | Market total value |
+| `marketLandValue` | bigint | Market land value |
+| `marketImprovementValue` | bigint | Market improvement value |
+
+<Note>
+  All price fields are stored in cents to avoid floating-point precision issues. Divide by 100 to display dollar amounts.
+</Note>
+
+### Basic Characteristics
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `bedrooms` | integer | Number of bedrooms |
+| `bathrooms` | numeric | Number of bathrooms (allows 2.5) |
+| `units` | integer | Number of units |
+| `sqft` | integer | Interior square footage |
+| `lotSqft` | integer | Lot size in square feet |
+| `lotAcres` | double | Lot size in acres |
+| `yearBuilt` | integer | Year of construction |
+| `stories` | integer | Number of stories |
+| `rooms` | integer | Total room count |
+
+### Financial Metrics
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `equity` | double | Equity percentage |
+| `capRate` | double | Cap rate percentage |
+| `exchange1031` | text | 1031 exchange status ("yes"/"no") |
+| `annualTax` | bigint | Annual property tax (cents) |
+| `taxYear` | integer | Tax assessment year |
+
+### Parcel Identifiers
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `parcelId` | text | County parcel identifier |
+| `apn` | text | Assessor's Parcel Number |
+| `llUuid` | text | Regrid persistent UUID |
+| `sourceParcelId` | text | Link to county_parcels table |
+| `mlsId` | text | MLS listing number |
+
+### Zoning & Legal
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `zoning` | text | Zoning designation |
+| `landUseCode` | text | Land use classification code |
+| `floodZone` | text | FEMA flood zone |
+| `schoolDistrict` | text | School district |
+| `subdivision` | text | Subdivision name |
+| `legalDescription` | text | Legal property description |
+
+### Structure Details
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `parkingSpaces` | integer | Number of parking spaces |
+| `pool` | text | Pool type/description |
+| `garage` | text | Garage type |
+| `garageSqft` | integer | Garage square footage |
+| `basementSqft` | integer | Basement square footage |
+| `constructionType` | text | Construction type |
+| `exteriorWalls` | text | Exterior wall material |
+| `roofType` | text | Roof type/material |
+| `foundation` | text | Foundation type |
+| `heating` | text | Heating system |
+| `cooling` | text | Cooling/AC system |
+| `fireplace` | text | Fireplace details |
+
+### Owner Information
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ownerName` | text | Primary owner name |
+| `ownerName2` | text | Secondary owner name |
+| `ownerOccupancyStatus` | text | Owner occupancy status |
+| `ownerMailingAddress` | text | Owner mailing street |
+| `ownerMailingCity` | text | Owner mailing city |
+| `ownerMailingState` | text | Owner mailing state |
+| `ownerMailingZip` | text | Owner mailing ZIP |
+| `ownershipType` | text | Type of ownership |
+| `ownershipTransferDate` | text | Last ownership transfer date |
+
+<Tip>
+  Use owner mailing addresses to identify absentee owners or potential off-market opportunities.
+</Tip>
+
+### Sale History
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `lastSaleDate` | text | Most recent sale date |
+| `lastSalePrice` | bigint | Most recent sale price (cents) |
+| `priorSaleDate` | text | Previous sale date |
+| `priorSalePrice` | bigint | Previous sale price (cents) |
+
+### Mortgage & Lender
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `loanAmount` | bigint | Current loan amount (cents) |
+| `lenderName` | text | Lender/mortgagee name |
+| `mortgageInterestRate` | double | Interest rate percentage |
+| `mortgageType` | text | Mortgage type |
+| `mortgageTerm` | text | Loan term |
+| `mortgageDueDate` | text | Mortgage maturity date |
+
+### Enrichment Data
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `walkScore` | integer | Walk Score (0-100) |
+| `transitScore` | integer | Transit Score (0-100) |
+| `bikeScore` | integer | Bike Score (0-100) |
+| `crimeIndex` | numeric | Crime index rating |
+| `nearbyAmenities` | jsonb | Array of nearby amenities |
+| `permitHistory` | jsonb | Building permit history |
+| `taxHistory` | jsonb | Property tax history |
+| `lastEnrichedAt` | timestamp | Last enrichment date |
+
+### Media & Description
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `images` | text[] | Array of image URLs |
+| `description` | text | Property description |
+
+### Data Source
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `dataSource` | text | Origin: `smarty`, `regrid`, `county`, `manual` |
+
+## Parcel Mapping
+
+Relio uses PostGIS for advanced geospatial features:
+
+- **Point geometry** (`geom`) - Auto-maintained by database trigger from lat/lng
+- **Parcel boundaries** (`geomBoundary`) - GeoJSON polygon of property boundaries
+- **Spatial queries** - Find properties within radius, polygons, or territories
+
+<Card title="Map View" icon="map-location-dot">
+  View properties on an interactive map with parcel boundaries and clustering
+</Card>
+
+## Sale History Tracking
+
+Track ownership changes and price trends:
+
+```json
+{
+  "lastSaleDate": "2022-06-15",
+  "lastSalePrice": 125000000,
+  "priorSaleDate": "2018-03-22",
+  "priorSalePrice": 95000000
+}
+```
+
+<Info>
+  Sale history helps identify appreciation rates and owner holding periods for investment analysis.
+</Info>
+
+## Property Enrichment
+
+Automatic enrichment from multiple sources:
+
+<Steps>
+  <Step title="Address Validation">
+    Geocode addresses to get accurate lat/lng coordinates (Smarty Streets)
+  </Step>
+  
+  <Step title="Parcel Data">
+    Fetch parcel boundaries, APN, and legal descriptions (Regrid)
+  </Step>
+  
+  <Step title="County Assessor">
+    Pull tax records, ownership, sale history, and property characteristics
+  </Step>
+  
+  <Step title="Amenity Scores">
+    Calculate walk scores, transit access, and nearby amenities
+  </Step>
+</Steps>
+
+## Multi-Family Properties
+
+For multi-family properties, use these fields:
+
+- `units` - Total unit count
+- `propertyType: "multi_family"`
+- Store unit mix details in custom fields or related tables
+- Use `capRate` for income property analysis
+
+<Tip>
+  Track individual unit details using custom fields or a separate unit tracking system for larger properties.
+</Tip>
+
+## Property Relationships
+
+Link properties to:
+- **Contacts** - Owners, buyers, sellers, agents, tenants
+- **Companies** - Property managers, developers, brokerages
+- **Deals** - Active transactions
+- **Activities** - Showings, inspections, appraisals
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always provide complete addresses">
+    Include street, city, state, and ZIP for accurate geocoding and enrichment. Incomplete addresses may fail to enrich.
+  </Accordion>
+  
+  <Accordion title="Use parcel IDs when available">
+    Linking `llUuid` or `parcelId` enables cross-workspace parcel matching and ensures data accuracy.
+  </Accordion>
+  
+  <Accordion title="Track status changes">
+    Update `status` as properties move through your pipeline: `active` → `under_contract` → `sold`
+  </Accordion>
+  
+  <Accordion title="Store prices in cents">
+    Always convert dollar amounts to cents before storing in price fields to avoid precision errors.
+  </Accordion>
+  
+  <Accordion title="Monitor enrichment freshness">
+    Check `lastEnrichedAt` and re-enrich properties periodically to keep assessor data current.
+  </Accordion>
+</AccordionGroup>

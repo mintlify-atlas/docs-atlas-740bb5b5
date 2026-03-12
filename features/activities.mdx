@@ -1,0 +1,361 @@
+---
+title: Activity Tracking
+description: Log interactions, track engagement history, and maintain detailed activity timelines
+---
+
+## Overview
+
+Activities track all interactions with contacts, companies, properties, and deals. Build a complete engagement history with calls, meetings, emails, notes, and property showings.
+
+<CardGroup cols={2}>
+  <Card title="Activity Types" icon="list-check">
+    Log calls, meetings, emails, notes, showings, and status changes
+  </Card>
+  <Card title="Polymorphic Linking" icon="link">
+    Attach activities to contacts, companies, properties, or deals
+  </Card>
+  <Card title="Collaboration" icon="comments">
+    Add replies and reactions to activities for team discussions
+  </Card>
+  <Card title="Timeline View" icon="timeline">
+    See chronological interaction history across all records
+  </Card>
+</CardGroup>
+
+## Activity Types
+
+Relio supports diverse activity types:
+
+| Type | Use Case |
+|------|----------|
+| `email` | Email correspondence |
+| `call` | Phone calls |
+| `meeting` | In-person or virtual meetings |
+| `note` | General notes and observations |
+| `task` | Task completion (deprecated - use tasks table) |
+| `showing` | Property showings |
+| `offer` | Offers submitted or received |
+| `status_change` | Record status updates |
+| `enrichment` | Automatic data enrichment events |
+| `tag_added` | Tag assignments |
+| `tag_removed` | Tag removals |
+| `link` | Record associations created |
+| `unlink` | Record associations removed |
+
+<Info>
+  System-generated activities like `enrichment`, `tag_added`, and `link` are created automatically by Relio.
+</Info>
+
+## Creating Activities
+
+<Steps>
+  <Step title="Set activity type and title">
+    Required fields:
+    - `type` - Activity type (see above)
+    - `title` - Activity title or subject
+    - `userId` - User who created the activity
+  </Step>
+  
+  <Step title="Add activity details">
+    Optional fields:
+    - `body` - Detailed notes or description
+    - `dueAt` - Due date for follow-up activities
+    - `metadata` - Additional structured data (JSON)
+  </Step>
+  
+  <Step title="Link to records">
+    Attach to one or more records:
+    - `contactId` - Associated contact
+    - `propertyId` - Associated property
+    - `companyId` - Associated company
+    - `dealId` - Associated deal
+    
+    <Note>
+      You can link an activity to multiple record types simultaneously (e.g., a showing linked to both a contact and a property).
+    </Note>
+  </Step>
+  
+  <Step title="Mark completion (optional)">
+    For actionable activities:
+    - `resolved` - Boolean completion flag
+    - `completedAt` - Completion timestamp
+    - `resolvedById` - User who completed it
+  </Step>
+</Steps>
+
+## Activity Fields Reference
+
+### Core Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | enum | Activity type (required) |
+| `title` | text | Activity title (required) |
+| `body` | text | Detailed notes or description |
+| `userId` | text | User who created the activity |
+| `metadata` | jsonb | Additional structured data |
+| `createdAt` | timestamp | Activity creation time |
+
+### Scheduling & Completion
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `dueAt` | timestamp | Due date/time |
+| `completedAt` | timestamp | Completion timestamp |
+| `resolved` | boolean | Whether activity is complete |
+| `resolvedById` | text | User who marked it complete |
+
+### Associations (Polymorphic)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `contactId` | text | Linked contact (optional) |
+| `propertyId` | text | Linked property (optional) |
+| `companyId` | text | Linked company (optional) |
+| `dealId` | text | Linked deal (optional) |
+
+<Tip>
+  Activities are polymorphic - you can link them to any combination of contacts, companies, properties, and deals.
+</Tip>
+
+## Activity Metadata
+
+The `metadata` field stores type-specific data:
+
+### Email Activity
+```json
+{
+  "subject": "RE: Office Building Inquiry",
+  "from": "agent@realty.com",
+  "to": ["buyer@example.com"],
+  "cc": ["assistant@realty.com"],
+  "messageId": "<msg-123@gmail.com>",
+  "threadId": "thread-456"
+}
+```
+
+### Call Activity
+```json
+{
+  "duration": 420,
+  "direction": "outbound",
+  "outcome": "connected",
+  "phoneNumber": "+1-555-0123"
+}
+```
+
+### Meeting Activity
+```json
+{
+  "location": "123 Main St, Conference Room A",
+  "attendees": ["contact_abc", "contact_xyz"],
+  "duration": 60,
+  "meetingType": "property_tour"
+}
+```
+
+### Showing Activity
+```json
+{
+  "propertyId": "prop_xyz",
+  "duration": 45,
+  "feedback": "Very interested, wants second showing",
+  "attendees": ["buyer_contact", "spouse_contact"]
+}
+```
+
+<Info>
+  The structure of `metadata` is flexible and can be customized for your workflow.
+</Info>
+
+## Activity Replies
+
+Team members can reply to activities using the **activityReplies** table:
+
+```typescript
+{
+  activityId: "activity_123",
+  userId: "user_abc",
+  body: "I followed up with the buyer. They want to schedule another showing.",
+  createdAt: "2024-03-12T15:30:00Z"
+}
+```
+
+Replies enable threaded discussions on activities:
+- Build conversation context
+- Collaborate on follow-ups
+- Document decisions and outcomes
+
+<Card title="Collaboration" icon="users">
+  Activity replies create threaded discussions for team collaboration
+</Card>
+
+## Activity Reactions
+
+Quickly acknowledge activities with emoji reactions using **activityReactions**:
+
+```typescript
+{
+  activityId: "activity_123",
+  userId: "user_xyz",
+  emoji: "👍",
+  createdAt: "2024-03-12T16:00:00Z"
+}
+```
+
+- Unique constraint: one emoji per user per activity
+- Lightweight acknowledgment
+- Show team engagement
+
+## Indexing and Performance
+
+Activities are indexed for fast timeline queries:
+- **Workspace** - All activities in your organization
+- **Contact/Property/Company/Deal** - Activities for specific records
+- **User** - Activities created by specific users
+
+## Activity Timeline Example
+
+A typical deal activity timeline:
+
+<Steps>
+  <Step title="Initial Contact">
+    ```json
+    {
+      "type": "call",
+      "title": "Initial inquiry about commercial properties",
+      "contactId": "buyer_contact",
+      "metadata": {
+        "duration": 300,
+        "direction": "inbound"
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Follow-up Email">
+    ```json
+    {
+      "type": "email",
+      "title": "Sent property listings matching criteria",
+      "contactId": "buyer_contact",
+      "body": "Sent 3 properties matching their requirements"
+    }
+    ```
+  </Step>
+  
+  <Step title="Property Showing">
+    ```json
+    {
+      "type": "showing",
+      "title": "Showed 123 Main St office building",
+      "contactId": "buyer_contact",
+      "propertyId": "property_123",
+      "metadata": {
+        "duration": 60,
+        "feedback": "Very interested, wants financials"
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Offer Submitted">
+    ```json
+    {
+      "type": "offer",
+      "title": "Offer submitted - $5.2M",
+      "contactId": "buyer_contact",
+      "propertyId": "property_123",
+      "dealId": "deal_456"
+    }
+    ```
+  </Step>
+</Steps>
+
+## Completion Tracking
+
+For actionable activities (calls to return, follow-ups, etc.):
+
+1. Create with `resolved: false` and a `dueAt` date
+2. Display in task lists or calendar
+3. When completed:
+   - Set `resolved: true`
+   - Set `completedAt` timestamp
+   - Set `resolvedById` to completing user
+
+```typescript
+// Pending activity
+{
+  type: "call",
+  title: "Call buyer back with pricing",
+  dueAt: "2024-03-15T10:00:00Z",
+  resolved: false
+}
+
+// Completed activity
+{
+  type: "call",
+  title: "Call buyer back with pricing",
+  dueAt: "2024-03-15T10:00:00Z",
+  resolved: true,
+  completedAt: "2024-03-15T09:45:00Z",
+  resolvedById: "user_agent",
+  body: "Discussed pricing, buyer wants to submit offer"
+}
+```
+
+<Note>
+  For more robust task management, use the dedicated Tasks feature instead of activity completion tracking.
+</Note>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Log all interactions">
+    Create activities for every meaningful interaction - calls, emails, meetings, showings. This builds a complete engagement history.
+  </Accordion>
+  
+  <Accordion title="Use descriptive titles">
+    Make titles searchable and informative: "Initial buyer call - multi-family interest" vs. "Call with John".
+  </Accordion>
+  
+  <Accordion title="Link to all relevant records">
+    If a showing involves a contact viewing a property for a specific deal, link all three: `contactId`, `propertyId`, and `dealId`.
+  </Accordion>
+  
+  <Accordion title="Leverage metadata for structure">
+    Store structured data in `metadata` rather than plain text in `body` for better reporting and filtering.
+  </Accordion>
+  
+  <Accordion title="Set due dates for follow-ups">
+    Use `dueAt` for activities that require follow-up action, turning your activity log into an action list.
+  </Accordion>
+  
+  <Accordion title="Encourage team replies">
+    Use activity replies for team collaboration and context sharing rather than separate notes.
+  </Accordion>
+</AccordionGroup>
+
+## System-Generated Activities
+
+Relio automatically creates activities for:
+
+- **Enrichment** (`type: "enrichment"`) - When contact or company data is enriched
+- **Tags** (`type: "tag_added"`, `tag_removed`) - Tag assignments and removals
+- **Links** (`type: "link"`, `unlink`) - Relationship creation and deletion
+- **Status Changes** (`type: "status_change"`) - Deal stage changes, contact stage updates
+
+<Info>
+  System activities provide audit trails and help track how records change over time.
+</Info>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Tasks" icon="list-check" href="/features/tasks">
+    For structured task management with assignees and priorities
+  </Card>
+  <Card title="Deals" icon="handshake" href="/features/deals">
+    Track deal activities and engagement throughout the sales cycle
+  </Card>
+</CardGroup>

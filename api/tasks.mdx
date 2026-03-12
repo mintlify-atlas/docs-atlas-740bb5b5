@@ -1,0 +1,218 @@
+---
+title: Tasks API
+description: Manage tasks and to-dos in your Relio workspace
+---
+
+## tasks.list()
+
+List tasks with filtering and pagination.
+
+<ParamField path="limit" type="number" default="50">
+  Maximum results
+</ParamField>
+
+<ParamField path="cursor" type="string">
+  Pagination cursor
+</ParamField>
+
+<ParamField path="search" type="string">
+  Search by task title
+</ParamField>
+
+<ParamField path="status" type="string">
+  Filter by status (todo, in_progress, done, cancelled)
+</ParamField>
+
+<ParamField path="priority" type="string">
+  Filter by priority (low, medium, high, urgent)
+</ParamField>
+
+<ParamField path="assigneeId" type="string">
+  Filter by assignee user ID
+</ParamField>
+
+<ParamField path="contactId" type="string">
+  Filter by linked contact
+</ParamField>
+
+<ParamField path="propertyId" type="string">
+  Filter by linked property
+</ParamField>
+
+<ParamField path="companyId" type="string">
+  Filter by linked company
+</ParamField>
+
+<ParamField path="dealId" type="string">
+  Filter by linked deal
+</ParamField>
+
+<ParamField path="dueBefore" type="Date">
+  Filter by due date before
+</ParamField>
+
+<ParamField path="dueAfter" type="Date">
+  Filter by due date after
+</ParamField>
+
+<ParamField path="viewMode" type="string">
+  View mode (mine or all)
+</ParamField>
+
+<ResponseField name="items" type="Task[]">
+  Array of tasks with assignees and linked records
+</ResponseField>
+
+<ResponseField name="nextCursor" type="string | null">
+  Next page cursor
+</ResponseField>
+
+```typescript
+const tasks = await trpc.tasks.list.query({
+  status: "in_progress",
+  priority: "high",
+  viewMode: "mine"
+});
+```
+
+## tasks.create()
+
+Create a new task.
+
+<ParamField path="title" type="string" required>
+  Task title
+</ParamField>
+
+<ParamField path="description" type="string">
+  Task description
+</ParamField>
+
+<ParamField path="status" type="string">
+  Task status (default: todo)
+</ParamField>
+
+<ParamField path="priority" type="string">
+  Priority level
+</ParamField>
+
+<ParamField path="dueDate" type="Date">
+  Due date
+</ParamField>
+
+<ParamField path="assigneeIds" type="string[]">
+  Array of user IDs to assign
+</ParamField>
+
+<ParamField path="contactId" type="string">
+  Linked contact ID
+</ParamField>
+
+<ParamField path="propertyId" type="string">
+  Linked property ID
+</ParamField>
+
+<ParamField path="companyId" type="string">
+  Linked company ID
+</ParamField>
+
+<ParamField path="dealId" type="string">
+  Linked deal ID
+</ParamField>
+
+<ParamField path="linkedRecords" type="array">
+  Additional linked records
+  - `recordId`: Record ID
+  - `recordType`: Record type (contact, property, company, deal)
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Task ID
+</ResponseField>
+
+<ResponseField name="statusEnteredAt" type="Date">
+  Timestamp when task entered current status
+</ResponseField>
+
+```typescript
+const task = await trpc.tasks.create.mutate({
+  title: "Follow up with client",
+  priority: "high",
+  dueDate: new Date("2024-12-31"),
+  assigneeIds: ["user123"],
+  contactId: "clx_contact_123"
+});
+```
+
+## tasks.update()
+
+Update an existing task.
+
+<ParamField path="id" type="string" required>
+  Task ID
+</ParamField>
+
+<ParamField path="title" type="string">
+  Task title
+</ParamField>
+
+<ParamField path="description" type="string">
+  Description
+</ParamField>
+
+<ParamField path="status" type="string">
+  Status (updates statusEnteredAt)
+</ParamField>
+
+<ParamField path="priority" type="string">
+  Priority
+</ParamField>
+
+<ParamField path="dueDate" type="Date">
+  Due date
+</ParamField>
+
+<ParamField path="assigneeIds" type="string[]">
+  Assignees (replaces existing)
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Task ID
+</ResponseField>
+
+```typescript
+const updated = await trpc.tasks.update.mutate({
+  id: "clx123...",
+  status: "done"
+});
+```
+
+## tasks.delete()
+
+Delete a task.
+
+<ParamField path="id" type="string" required>
+  Task ID
+</ParamField>
+
+```typescript
+const deleted = await trpc.tasks.delete.mutate("clx123...");
+```
+
+## tasks.board()
+
+Get board view with tasks grouped by status.
+
+<ResponseField name="columns" type="BoardColumn[]">
+  Array of status columns
+  - `status`: Status value
+  - `tasks`: Array of tasks in this status
+  - `count`: Number of tasks
+</ResponseField>
+
+```typescript
+const board = await trpc.tasks.board.query();
+
+board.forEach(column => {
+  console.log(`${column.status}: ${column.count} tasks`);
+});
+```

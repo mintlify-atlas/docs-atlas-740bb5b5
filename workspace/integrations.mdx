@@ -1,0 +1,241 @@
+---
+title: Workspace Integrations
+description: Connect third-party data providers and services to enhance your Relio workspace
+---
+
+## Overview
+
+Integrations allow you to connect external data providers to Relio, unlocking powerful features like property data enrichment, address verification, and parcel mapping.
+
+All integration management requires the **admin** role.
+
+## Available Integrations
+
+Relio supports the following BYOK (Bring Your Own Key) integrations:
+
+### Regrid
+
+**Provider:** Regrid (formerly Loveland)  
+**Type:** Property parcel data
+
+**Features unlocked:**
+- Parcel boundary mapping and visualization
+- Property ownership data
+- Zoning information
+- Building footprints
+- Parcel typeahead search
+- Historical sale data
+
+**API Key:** Requires a Regrid API token from your Regrid account.
+
+### Smarty
+
+**Provider:** Smarty (SmartyStreets)  
+**Type:** Address verification and enrichment
+
+**Features unlocked:**
+- US address verification and standardization
+- Bulk address validation (up to 100 addresses)
+- Property enrichment (square footage, beds/baths, year built)
+- Reverse geocoding (coordinates to address)
+
+**API Key:** Requires both `authId` and `authToken` from your Smarty account (provided as JSON).
+
+<Warning>
+  Integration API keys are encrypted at rest using **AES-256-GCM**. Keys are never exposed to the frontend and are only used server-side.
+</Warning>
+
+## Setting Up an Integration
+
+<Steps>
+  <Step title="Navigate to integrations">
+    Go to **Settings → Workspace → Integrations**
+  </Step>
+  
+  <Step title="Select a provider">
+    Click **Connect** next to the integration you want to set up (e.g., Regrid or Smarty)
+  </Step>
+  
+  <Step title="Enter your API credentials">
+    - **Regrid**: Paste your Regrid API token
+    - **Smarty**: Paste a JSON object with your `authId` and `authToken`:
+      ```json
+      {
+        "authId": "your-auth-id",
+        "authToken": "your-auth-token"
+      }
+      ```
+  </Step>
+  
+  <Step title="Test connection">
+    Relio will validate your credentials before saving. If validation fails, check your API key and try again.
+  </Step>
+  
+  <Step title="Save and activate">
+    Once connected, the integration is active for all workspace members. Features will appear in the UI immediately.
+  </Step>
+</Steps>
+
+## Managing Integration Settings
+
+### Testing a Connection
+
+You can test your integration at any time to verify credentials are still valid:
+
+1. Go to **Settings → Workspace → Integrations**
+2. Find the integration in the active list
+3. Click **Test Connection**
+4. Status will update to show if the test passed or failed
+
+Last test status and timestamp are displayed in the integration list.
+
+### Disconnecting an Integration
+
+To remove an integration:
+
+1. Go to **Settings → Workspace → Integrations**
+2. Find the integration you want to remove
+3. Click **Disconnect**
+4. Confirm the disconnection
+
+<Warning>
+  Disconnecting an integration will:
+  - Immediately disable all features powered by that provider
+  - Mark the integration as disconnected (soft delete)
+  - Preserve historical usage data and metadata
+  - Not delete any data you've already imported from the provider
+</Warning>
+
+## Integration Features
+
+Once connected, integrations unlock specific features throughout Relio.
+
+### Regrid Features
+
+**Parcel Typeahead Search**  
+Search for properties by address with autocomplete. Results include parcel IDs for detailed lookup.
+
+**Parcel Detail**  
+Fetch comprehensive property data including:
+- Ownership information
+- Zoning classification
+- Building details
+- Tax assessment
+- Sale history
+
+**Map Tiles**  
+Overlay parcel boundaries on property maps. Tile requests are proxied through Relio's backend to keep your API token secure.
+
+**Usage Monitoring**  
+Admins can view Regrid API usage stats for the current billing cycle.
+
+### Smarty Features
+
+**Address Verification**  
+Validate and standardize US addresses with USPS-certified data. Returns deliverability status and corrected formatting.
+
+**Bulk Verification**  
+Verify up to 100 addresses in a single request. Useful for import workflows and data cleaning.
+
+**Property Enrichment**  
+Enrich properties with detailed attributes:
+- Square footage
+- Bedrooms and bathrooms
+- Year built
+- Lot size
+- Property type
+
+**Reverse Geocoding**  
+Convert latitude/longitude coordinates to a standardized address.
+
+## Feature Availability API
+
+Relio provides an API to check which features are available based on your connected integrations:
+
+```typescript
+const features = await trpc.integrations.features.query();
+// Returns a map of feature keys with availability status
+```
+
+You can also check what features a specific provider would unlock:
+
+```typescript
+const regridFeatures = await trpc.integrations.providerFeatures.query({ 
+  provider: "regrid" 
+});
+```
+
+See `packages/api/src/routers/integrations.ts:150` for implementation.
+
+## Platform-Level Integrations
+
+Some features require platform-level API keys (managed by Relio administrators):
+
+- **Exa**: Web search and research
+- **Valyu**: Property valuations
+- **Tako**: Market data
+- **PDL** (People Data Labs): Contact enrichment
+
+These integrations do not require workspace-level setup and are available to all workspaces when enabled.
+
+## Technical Details
+
+For developers:
+
+### Database Schema
+
+Integrations are stored in the `workspaceIntegrations` table with the following fields:
+
+- `workspaceId`: References the organization
+- `provider`: Integration identifier (e.g., `"regrid"`, `"smarty"`)
+- `encryptedApiKey`: AES-256-GCM encrypted credentials
+- `connectedBy`: User ID who set up the integration
+- `connectedAt`: Timestamp of connection
+- `disconnectedAt`: Null for active integrations, timestamp when disconnected
+- `lastTestedAt`: Last successful connection test
+- `lastTestStatus`: `"ok"`, `"error"`, or `null`
+
+See `packages/db/src/schema/workspace-integrations.ts` for the full schema.
+
+### API Endpoints
+
+**Integration Management:**
+- `integrations.status` - Get connection status for a provider
+- `integrations.list` - List all active integrations
+- `integrations.connect` - Connect a new integration (admin)
+- `integrations.disconnect` - Disconnect an integration (admin)
+- `integrations.testConnection` - Test stored credentials (admin)
+
+**Regrid-Specific:**
+- `integrations.regridTypeahead` - Parcel search autocomplete
+- `integrations.regridParcelDetail` - Full parcel data lookup
+- `integrations.regridTileConfig` - Map tile configuration
+- `integrations.regridUsage` - API usage statistics (admin)
+
+**Smarty-Specific:**
+- `integrations.smartyVerifyAddress` - Single address verification
+- `integrations.smartyBulkVerify` - Batch address verification
+- `integrations.smartyEnrichProperty` - Property data enrichment
+- `integrations.smartyReverseGeocode` - Coordinate to address conversion
+
+See `packages/api/src/routers/integrations.ts` for complete API documentation.
+
+### Security
+
+API keys are encrypted using the `INTEGRATION_ENCRYPTION_KEY` environment variable:
+
+- Encryption: AES-256-GCM
+- Format: `base64(iv:authTag:ciphertext)`
+- Keys are decrypted only when making API requests
+- Never exposed to the client or in API responses
+
+### Caching
+
+Typeahead search results are cached in-memory:
+
+- **TTL**: 5 minutes
+- **Max entries**: 1000
+- **Cache key**: `{workspaceId}:{query}`
+- Eviction: LRU (least recently used)
+
+See `packages/api/src/routers/integrations.ts:76-99` for cache implementation.

@@ -1,0 +1,99 @@
+---
+title: 'SDK Overview'
+description: 'TypeScript/JavaScript SDK for Relio'
+---
+
+## Introduction
+
+The Relio SDK is distributed as part of the `relio-cli` package and provides both client-side and server-side modules for interacting with the Relio API.
+
+## Package Information
+
+- **Package Name**: `relio-cli`
+- **Language**: TypeScript/JavaScript
+- **Modules**:
+  - `relio-cli/client` - Client-side SDK
+  - `relio-cli/server` - Server-side SDK
+  - `relio-cli/core` - Core utilities
+
+## Installation
+
+```bash
+npm install relio-cli
+```
+
+## Client-Side vs Server-Side
+
+### Client SDK (`relio-cli/client`)
+
+The client SDK is designed for use in client-side applications and includes:
+
+- Full CRUD operations for contacts and other resources
+- Helper methods for contact synchronization
+- Simplified API for common operations
+
+Use the client SDK when:
+- Building frontend applications
+- Creating integrations that need to sync contacts
+- Working with the Relio API in a standard client context
+
+### Server SDK (`relio-cli/server`)
+
+The server SDK extends the client SDK with server-specific features:
+
+- All client SDK functionality
+- Webhook request verification
+- Server-side optimizations
+
+Use the server SDK when:
+- Building backend services
+- Handling webhook events
+- Running in a Node.js server environment
+
+## Quick Start
+
+### Client SDK
+
+```typescript
+import { createRelioClient } from "relio-cli/client";
+
+const relio = createRelioClient({
+  baseUrl: "http://localhost:3000",
+  apiKey: process.env.RELIO_API_KEY!,
+});
+
+const contacts = await relio.contacts.list({ limit: 50 });
+```
+
+### Server SDK
+
+```typescript
+import { createRelioServerClient } from "relio-cli/server";
+
+const relio = createRelioServerClient({
+  baseUrl: "http://localhost:3000",
+  apiKey: process.env.RELIO_API_KEY!,
+});
+
+const contact = await relio.contact.create({
+  firstName: "Grace",
+  lastName: "Hopper",
+});
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Client SDK" icon="browser" href="/sdk/client">
+    Learn about the client-side SDK
+  </Card>
+  <Card title="Server SDK" icon="server" href="/sdk/server">
+    Explore server-side features
+  </Card>
+  <Card title="Examples" icon="code" href="/sdk/examples">
+    View code examples
+  </Card>
+  <Card title="API Reference" icon="book" href="/api/overview">
+    Browse the API reference
+  </Card>
+</CardGroup>

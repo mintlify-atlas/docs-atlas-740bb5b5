@@ -1,0 +1,367 @@
+---
+title: Desktop Application
+description: Experience native desktop performance with Relio's desktop app for Windows, Mac, and Linux
+icon: desktop
+---
+
+The Relio desktop application delivers native desktop performance with full offline support. Built with Tauri, it combines the power of web technologies with native system integration, providing a fast, secure, and feature-rich CRM experience.
+
+## Technology Stack
+
+The desktop application leverages cutting-edge technologies:
+
+- **Tauri 2.4** - Lightweight native application framework
+- **Next.js 16** - Same web app foundation
+- **React 19** - Modern React features
+- **Rust** - Native backend for performance and security
+- **TypeScript** - Type-safe development
+
+## Platform Support
+
+<Tabs>
+  <Tab title="Windows">
+    ### System Requirements
+    **Minimum:**
+    - Windows 10 (64-bit) or later
+    - Intel Core i3 or equivalent
+    - 4GB RAM
+    - 500MB available storage
+    - DirectX 11 compatible graphics
+    
+    **Recommended:**
+    - Windows 11 (64-bit)
+    - Intel Core i5 or equivalent
+    - 8GB+ RAM
+    - 1GB available storage
+    - Dedicated graphics card
+    
+    ### Installation
+    1. Download `Relio-Setup.exe` from the downloads page
+    2. Double-click the installer
+    3. Follow the installation wizard
+    4. Launch Relio from the Start Menu
+    5. Sign in with your account
+  </Tab>
+  <Tab title="macOS">
+    ### System Requirements
+    **Minimum:**
+    - macOS 11 Big Sur or later
+    - Intel or Apple Silicon (M1/M2/M3)
+    - 4GB RAM
+    - 500MB available storage
+    
+    **Recommended:**
+    - macOS 13 Ventura or later
+    - Apple Silicon (M1 or newer)
+    - 8GB+ RAM
+    - 1GB available storage
+    
+    ### Installation
+    1. Download `Relio.dmg` from the downloads page
+    2. Open the DMG file
+    3. Drag Relio to Applications folder
+    4. Launch from Applications or Spotlight
+    5. If prompted, allow the app in System Preferences > Security
+    6. Sign in with your account
+    
+    <Note>
+      The app is notarized by Apple but you may need to allow it in Security & Privacy settings on first launch.
+    </Note>
+  </Tab>
+  <Tab title="Linux">
+    ### System Requirements
+    **Minimum:**
+    - Ubuntu 20.04, Fedora 36, Debian 11, or equivalent
+    - x86_64 or ARM64 architecture
+    - 4GB RAM
+    - 500MB available storage
+    - GTK 3.24+
+    
+    **Recommended:**
+    - Ubuntu 22.04 or later
+    - x86_64 architecture
+    - 8GB+ RAM
+    - 1GB available storage
+    
+    ### Installation
+    
+    **AppImage (Universal):**
+    ```bash
+    # Download the AppImage
+    wget https://relio.app/downloads/Relio.AppImage
+    
+    # Make it executable
+    chmod +x Relio.AppImage
+    
+    # Run the application
+    ./Relio.AppImage
+    ```
+    
+    **Debian/Ubuntu (.deb):**
+    ```bash
+    # Download and install
+    wget https://relio.app/downloads/relio_amd64.deb
+    sudo dpkg -i relio_amd64.deb
+    
+    # Launch from applications or terminal
+    relio
+    ```
+    
+    **Fedora/RHEL (.rpm):**
+    ```bash
+    # Download and install
+    wget https://relio.app/downloads/relio.x86_64.rpm
+    sudo rpm -i relio.x86_64.rpm
+    
+    # Launch from applications or terminal
+    relio
+    ```
+  </Tab>
+</Tabs>
+
+## Desktop-Specific Features
+
+The desktop app includes features that leverage native desktop capabilities:
+
+### Native Integration
+- **System tray** - Quick access from your taskbar/menu bar
+- **Native notifications** - OS-level notification center
+- **File system access** - Drag and drop files directly
+- **Deep linking** - Open Relio links from anywhere
+- **Global shortcuts** - System-wide keyboard shortcuts
+- **Auto-launch** - Start automatically on system boot
+
+### Offline Support
+<Info>
+  The desktop app provides comprehensive offline support. All your contacts, properties, and recent data are stored locally and sync automatically when you reconnect.
+</Info>
+
+**Offline Capabilities:**
+- View all contacts and properties
+- Create and edit records
+- Add notes and tasks
+- Search local data
+- Automatic sync when online
+- Conflict resolution
+
+### Performance Benefits
+- **Faster startup** - Native app launches instantly
+- **Lower memory usage** - More efficient than browser tabs
+- **Better multitasking** - Dedicated window management
+- **Hardware acceleration** - Native GPU rendering
+- **Resource optimization** - Lower CPU and battery usage
+
+### Privacy & Security
+- **Local data storage** - Your data stays on your machine
+- **Encrypted storage** - Local database is encrypted
+- **No browser dependencies** - Independent security model
+- **Network isolation** - Controlled network access
+- **Auto-lock** - Secure your app with password/biometrics
+
+## Key Features
+
+All web app features are available in the desktop app:
+
+### Full CRM Functionality
+- Complete contact and property management
+- Deal pipeline and workflow automation
+- Communication tools and templates
+- Analytics and reporting
+- AI-powered features
+- Team collaboration
+
+### Desktop Enhancements
+- Multiple windows and workspaces
+- Native file picker and drag-drop
+- System clipboard integration
+- Print support
+- Local file attachments
+- Custom window controls
+
+## Application Settings
+
+Customize your desktop experience:
+
+### General Settings
+- **Launch at startup** - Start Relio when your computer boots
+- **Minimize to tray** - Keep app running in background
+- **Theme** - Light, dark, or system default
+- **Notifications** - Configure desktop notifications
+- **Updates** - Auto-update or manual download
+
+### Performance Settings
+- **Hardware acceleration** - Enable GPU rendering (recommended)
+- **Cache size** - Configure local storage limits
+- **Sync frequency** - How often to sync with cloud
+- **Background sync** - Sync even when app is closed
+
+### Privacy Settings
+- **Local data encryption** - Encrypt local database
+- **Auto-lock** - Lock app after inactivity
+- **Clear cache** - Remove local data
+- **Session timeout** - Automatic logout
+
+## Keyboard Shortcuts
+
+The desktop app includes additional keyboard shortcuts:
+
+<Tabs>
+  <Tab title="Global">
+    - `Ctrl/Cmd + ,` - Open settings
+    - `Ctrl/Cmd + Q` - Quit application
+    - `Ctrl/Cmd + M` - Minimize window
+    - `Ctrl/Cmd + W` - Close current tab
+    - `F11` - Toggle fullscreen
+  </Tab>
+  <Tab title="Navigation">
+    - `Ctrl/Cmd + K` - Command palette
+    - `Ctrl/Cmd + 1-9` - Switch tabs
+    - `Ctrl/Cmd + T` - New tab
+    - `Ctrl/Cmd + Tab` - Next tab
+  </Tab>
+  <Tab title="Actions">
+    - `Ctrl/Cmd + N` - New record
+    - `Ctrl/Cmd + S` - Save changes
+    - `Ctrl/Cmd + F` - Find in page
+    - `Ctrl/Cmd + R` - Refresh data
+  </Tab>
+</Tabs>
+
+## Updates
+
+The desktop app updates automatically:
+
+1. New versions are downloaded in the background
+2. You'll be notified when an update is ready
+3. Choose to install now or on next restart
+4. Updates are verified and installed securely
+
+<Tabs>
+  <Tab title="Auto-Update">
+    Recommended for most users. Updates download and install automatically.
+    
+    **Configure in:** Settings > General > Updates
+  </Tab>
+  <Tab title="Manual Update">
+    Download updates manually from the downloads page.
+    
+    1. Visit [relio.app/downloads](https://relio.app/downloads)
+    2. Download installer for your platform
+    3. Install over existing version
+  </Tab>
+</Tabs>
+
+## Troubleshooting
+
+### App Won't Start
+<Tabs>
+  <Tab title="Windows">
+    1. Check Windows Update is current
+    2. Install Visual C++ Redistributable
+    3. Run as administrator
+    4. Check antivirus isn't blocking
+    5. Reinstall the application
+  </Tab>
+  <Tab title="macOS">
+    1. Check System Preferences > Security & Privacy
+    2. Allow the app if it's been blocked
+    3. Remove from quarantine:
+       ```bash
+       xattr -cr /Applications/Relio.app
+       ```
+    4. Reinstall if issues persist
+  </Tab>
+  <Tab title="Linux">
+    1. Check missing dependencies:
+       ```bash
+       ldd Relio.AppImage
+       ```
+    2. Install GTK and WebKit libraries
+    3. Check permissions:
+       ```bash
+       chmod +x Relio.AppImage
+       ```
+    4. Run from terminal to see error messages
+  </Tab>
+</Tabs>
+
+### Sync Issues
+1. Check internet connection
+2. Sign out and sign back in
+3. Force sync from settings
+4. Clear cache and re-sync
+5. Contact support if issues persist
+
+### Performance Issues
+- Disable hardware acceleration if you see visual glitches
+- Clear cache in settings
+- Reduce sync frequency
+- Update to latest version
+- Check system resources (RAM, disk space)
+
+## Uninstalling
+
+<Tabs>
+  <Tab title="Windows">
+    1. Open Settings > Apps
+    2. Find "Relio" in the list
+    3. Click Uninstall
+    4. Follow the uninstall wizard
+    
+    To remove all data:
+    ```bash
+    rmdir /s "%APPDATA%\Relio"
+    ```
+  </Tab>
+  <Tab title="macOS">
+    1. Open Applications folder
+    2. Drag Relio to Trash
+    3. Empty Trash
+    
+    To remove all data:
+    ```bash
+    rm -rf ~/Library/Application\ Support/Relio
+    ```
+  </Tab>
+  <Tab title="Linux">
+    **AppImage:** Simply delete the file
+    
+    **Debian/Ubuntu:**
+    ```bash
+    sudo apt remove relio
+    ```
+    
+    **Fedora/RHEL:**
+    ```bash
+    sudo dnf remove relio
+    ```
+    
+    To remove all data:
+    ```bash
+    rm -rf ~/.config/Relio
+    ```
+  </Tab>
+</Tabs>
+
+## Getting Started
+
+Ready to install the desktop app?
+
+1. Choose your platform and download the installer
+2. Follow the installation instructions above
+3. Launch and sign in with your Relio account
+4. Configure your preferences in settings
+5. Start using Relio with native desktop performance
+
+Need help? Check our [Quick Start Guide](/quickstart) or explore the [Platform Documentation](/platform/web-app).
+
+## Desktop vs Other Platforms
+
+<CardGroup cols={2}>
+  <Card title="Web App" icon="globe" href="/platform/web-app">
+    Access Relio from any browser without installation
+  </Card>
+  <Card title="Mobile App" icon="mobile" href="/platform/mobile-app">
+    Stay connected on the go with native mobile experience
+  </Card>
+</CardGroup>

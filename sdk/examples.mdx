@@ -1,0 +1,299 @@
+---
+title: 'SDK Examples'
+description: 'Code examples for the Relio TypeScript/JavaScript SDK'
+---
+
+## Creating Contacts
+
+### Single Contact
+
+<CodeGroup>
+
+```typescript Client SDK
+import { createRelioClient } from "relio-cli/client";
+
+const relio = createRelioClient({
+  baseUrl: "http://localhost:3000",
+  apiKey: process.env.RELIO_API_KEY!,
+});
+
+const contact = await relio.contacts.create({
+  firstName: "Ada",
+  lastName: "Lovelace",
+  email: [{ address: "ada@example.com", isPrimary: true }],
+});
+
+console.log(`Created contact: ${contact.id}`);
+```
+
+```typescript Server SDK
+import { createRelioServerClient } from "relio-cli/server";
+
+const relio = createRelioServerClient({
+  baseUrl: "http://localhost:3000",
+  apiKey: process.env.RELIO_API_KEY!,
+});
+
+const contact = await relio.contact.create({
+  firstName: "Grace",
+  lastName: "Hopper",
+});
+
+console.log(`Created contact: ${contact.id}`);
+```
+
+</CodeGroup>
+
+### Contact with Full Details
+
+```typescript
+const contact = await relio.contacts.create({
+  firstName: "Ada",
+  lastName: "Lovelace",
+  email: [
+    { address: "ada@example.com", isPrimary: true },
+    { address: "ada.lovelace@work.com", isPrimary: false },
+  ],
+  phone: [
+    { number: "+1-555-0123", isPrimary: true },
+  ],
+  company: "Analytical Engine Inc.",
+  title: "Mathematician",
+  notes: "Pioneer of computer programming",
+});
+```
+
+## Updating Records
+
+### Update Contact
+
+```typescript
+const relio = createRelioClient({
+  baseUrl: "http://localhost:3000",
+  apiKey: process.env.RELIO_API_KEY!,
+});
+
+// Create a contact
+const contact = await relio.contacts.create({
+  firstName: "Ada",
+  lastName: "Lovelace",
+  email: [{ address: "ada@example.com", isPrimary: true }],
+});
+
+// Update using singular alias
+await relio.contact.update(contact.id, { 
+  notes: "Imported from partner CRM" 
+});
+
+console.log("Contact updated successfully");
+```
+
+### Upsert by Primary Email
+
+```typescript
+// Creates a new contact or updates existing one
+await relio.upsertContactByPrimaryEmail("ada@example.com", {
+  firstName: "Ada",
+  lastName: "Lovelace",
+  company: "Analytical Engine Inc.",
+});
+```
+
+## Bulk Imports
+
+### Import Multiple Contacts
+
+```typescript
+import { createRelioClient } from "relio-cli/client";
+
+const relio = createRelioClient({
+  baseUrl: "http://localhost:3000",
+  apiKey: process.env.RELIO_API_KEY!,
+});
+
+const rows = [
+  {
+    firstName: "Ada",
+    lastName: "Lovelace",
+    email: [{ address: "ada@example.com", isPrimary: true }],
+  },
+  {
+    firstName: "Grace",
+    lastName: "Hopper",
+    email: [{ address: "grace@example.com", isPrimary: true }],
+  },
+  {
+    firstName: "Margaret",
+    lastName: "Hamilton",
+    email: [{ address: "margaret@example.com", isPrimary: true }],
+  },
+];
+
+// Automatically handles chunking for optimal performance
+await relio.ingestContacts(rows);
+
+console.log(`Imported ${rows.length} contacts`);
+```
+
+### Import from CSV
+
+```typescript
+import { createRelioClient } from "relio-cli/client";
+import { parse } from "csv-parse/sync";
+import { readFileSync } from "fs";
+
+const relio = createRelioClient({
+  baseUrl: "http://localhost:3000",
+  apiKey: process.env.RELIO_API_KEY!,
+});
+
+// Read and parse CSV file
+const csvContent = readFileSync("contacts.csv", "utf-8");
+const records = parse(csvContent, {
+  columns: true,
+  skip_empty_lines: true,
+});
+
+// Transform CSV rows to contact format
+const contacts = records.map((row: any) => ({
+  firstName: row.first_name,
+  lastName: row.last_name,
+  email: [{ address: row.email, isPrimary: true }],
+  company: row.company,
+}));
+
+// Bulk import
+await relio.ingestContacts(contacts);
+
+console.log(`Imported ${contacts.length} contacts from CSV`);
+```
+
+## Webhook Handling
+
+### Basic Webhook Handler
+
+```typescript
+import { verifyRelioWebhookRequest } from "relio-cli/server";
+
+export async function POST(req: Request) {
+  const verified = await verifyRelioWebhookRequest({
+    request: req,
+    secret: process.env.RELIO_WEBHOOK_SECRET!,
+  });
+
+  console.log(verified.event, verified.payload);
+  return new Response("ok");
+}
+```
+
+### Advanced Webhook Processing
+
+```typescript
+import { createRelioServerClient, verifyRelioWebhookRequest } from "relio-cli/server";
+
+const relio = createRelioServerClient({
+  baseUrl: process.env.RELIO_BASE_URL!,
+  apiKey: process.env.RELIO_API_KEY!,
+});
+
+export async function POST(req: Request) {
+  // Verify webhook signature
+  const verified = await verifyRelioWebhookRequest({
+    request: req,
+    secret: process.env.RELIO_WEBHOOK_SECRET!,
+  });
+
+  // Handle different event types
+  switch (verified.event) {
+    case "contact.created":
+      console.log(`New contact: ${verified.payload.id}`);
+      // Trigger welcome email, add to CRM, etc.
+      break;
+
+    case "contact.updated":
+      console.log(`Contact updated: ${verified.payload.id}`);
+      // Sync changes to external systems
+      break;
+
+    case "contact.deleted":
+      console.log(`Contact deleted: ${verified.payload.id}`);
+      // Clean up related records
+      break;
+
+    default:
+      console.log(`Unhandled event: ${verified.event}`);
+  }
+
+  return new Response("ok", { status: 200 });
+}
+```
+
+## Listing and Pagination
+
+### List Contacts with Pagination
+
+```typescript
+import { createRelioClient } from "relio-cli/client";
+
+const relio = createRelioClient({
+  baseUrl: "http://localhost:3000",
+  apiKey: process.env.RELIO_API_KEY!,
+});
+
+// Get first page
+const page = await relio.contacts.list({ limit: 50 });
+
+console.log(`Found ${page.data.length} contacts`);
+console.log(`Total: ${page.total}`);
+
+// Process all contacts
+for (const contact of page.data) {
+  console.log(`${contact.firstName} ${contact.lastName}`);
+}
+```
+
+## Error Handling
+
+```typescript
+import { createRelioClient } from "relio-cli/client";
+
+const relio = createRelioClient({
+  baseUrl: "http://localhost:3000",
+  apiKey: process.env.RELIO_API_KEY!,
+});
+
+try {
+  const contact = await relio.contacts.create({
+    firstName: "Ada",
+    lastName: "Lovelace",
+    email: [{ address: "ada@example.com", isPrimary: true }],
+  });
+  
+  console.log(`Created contact: ${contact.id}`);
+} catch (error) {
+  if (error.response?.status === 401) {
+    console.error("Invalid API key");
+  } else if (error.response?.status === 400) {
+    console.error("Invalid request:", error.response.data);
+  } else {
+    console.error("Unexpected error:", error.message);
+  }
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Client SDK" icon="browser" href="/sdk/client">
+    Learn more about the client SDK
+  </Card>
+  <Card title="Server SDK" icon="server" href="/sdk/server">
+    Explore server-side features
+  </Card>
+  <Card title="API Reference" icon="book" href="/api/overview">
+    Browse the full API reference
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/api/webhooks">
+    Set up webhook integrations
+  </Card>
+</CardGroup>
