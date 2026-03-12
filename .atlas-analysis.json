@@ -1,0 +1,170 @@
+{
+  "projectType": "saas",
+  "projectName": "Relio",
+  "projectDescription": "Modern CRM platform for real estate professionals with AI-powered insights, multi-platform support, and real-time collaboration.",
+  "theme": "maple",
+  "primaryColor": "#f7f7f7",
+  "lightColor": null,
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/contacts",
+              "features/companies",
+              "features/properties",
+              "features/deals",
+              "features/activities",
+              "features/tasks"
+            ]
+          },
+          {
+            "group": "Advanced Features",
+            "pages": [
+              "features/ai-analytics",
+              "features/real-time-collaboration",
+              "features/email-templates",
+              "features/custom-fields",
+              "features/territories"
+            ]
+          },
+          {
+            "group": "Platform",
+            "pages": [
+              "platform/web-app",
+              "platform/mobile-app",
+              "platform/desktop-app"
+            ]
+          },
+          {
+            "group": "Workspace Management",
+            "pages": [
+              "workspace/overview",
+              "workspace/members",
+              "workspace/billing",
+              "workspace/integrations"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "api/overview",
+              "api/authentication",
+              "api/rate-limits"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "api/contacts",
+              "api/companies",
+              "api/properties",
+              "api/deals",
+              "api/activities",
+              "api/tasks",
+              "api/lists",
+              "api/tags",
+              "api/files"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "api/webhooks",
+              "api/custom-fields",
+              "api/search",
+              "api/geo"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI & SDK",
+        "groups": [
+          {
+            "group": "CLI",
+            "pages": [
+              "cli/overview",
+              "cli/installation",
+              "cli/authentication",
+              "cli/commands"
+            ]
+          },
+          {
+            "group": "SDK",
+            "pages": [
+              "sdk/overview",
+              "sdk/client",
+              "sdk/server",
+              "sdk/examples"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "CRM for real estate professionals",
+    "Contact, company, and property management",
+    "Deal pipeline tracking",
+    "AI-powered analytics and insights",
+    "Real-time collaboration",
+    "Multi-platform (web, mobile, desktop)",
+    "Custom fields and views",
+    "Email templates and automation",
+    "Territory management",
+    "Webhooks and API integrations",
+    "Workspace billing and team management"
+  ],
+  "publicApiSurface": [
+    "tRPC API with 40+ routers",
+    "contacts.list()",
+    "contacts.create()",
+    "contacts.update()",
+    "contacts.delete()",
+    "companies.list()",
+    "companies.create()",
+    "properties.list()",
+    "properties.create()",
+    "deals.list()",
+    "deals.create()",
+    "activities.list()",
+    "activities.create()",
+    "tasks.list()",
+    "tasks.create()",
+    "lists.list()",
+    "tags.list()",
+    "files.upload()",
+    "search.query()",
+    "geo.search()",
+    "customFields.list()",
+    "views.list()",
+    "emailTemplates.list()",
+    "workspaceApiTokens.create()",
+    "workspaceWebhooks.create()",
+    "billing.getCurrent()",
+    "CLI: relio login",
+    "CLI: relio whoami",
+    "CLI: relio profiles",
+    "SDK: createRelioClient()",
+    "SDK: createRelioServerClient()",
+    "SDK: verifyRelioWebhookRequest()"
+  ]
+}
